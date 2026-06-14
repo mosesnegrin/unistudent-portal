@@ -6,7 +6,7 @@ The app intentionally ships with no fake universities, users, events, offers, no
 
 ## Features
 
-- University-first login with Supabase OTP magic links
+- University-first email and password authentication
 - Email domain validation per university
 - Private app access only after login
 - Roles: student, tutor, notes seller, event creator, partner, university admin, super admin
@@ -62,22 +62,47 @@ Before anyone can log in, add a real university:
    - `is_active`: `true`
 4. Save.
 
-The login dropdown now shows this university. Students must use an email ending in that domain.
+The login and signup dropdown now shows this university. Users must use an email ending in that domain or the matching admin-style domain.
+
+Example:
+
+- `allowed_email_domain`: `lbs.ac.at`
+- Student email accepted: `name@lbs.ac.at`
+- Admin-style email accepted: `name@admin.lbs.ac.at`
+
+Admin-style emails do not automatically receive admin permissions. They only pass the email-domain check. Admin roles still need to be assigned manually through `user_roles` or `/admin/users`.
+
+## Supabase Email Confirmation
+
+The app uses Supabase email + password authentication.
+
+If you want users to log in immediately after signup:
+
+1. Open Supabase.
+2. Go to Authentication.
+3. Go to Providers.
+4. Open Email.
+5. Turn Confirm email OFF.
+6. Save.
+
+If Confirm email is ON, users may need to confirm their email before they receive a session and can log in.
 
 ## Create the First Super Admin
 
 1. Go to the app login page.
 2. Select the university you created.
-3. Enter your full name and matching university email.
-4. Click the login link from your email.
-5. In Supabase, open Table Editor.
-6. Open `profiles` and find your user row.
-7. Open `roles` and copy the `id` for `super_admin`.
-8. Open `user_roles`.
-9. Insert a row:
+3. Open the Sign up tab.
+4. Enter your full name, matching university email, and password.
+5. Create the account.
+6. If email confirmation is enabled, confirm the email before continuing.
+7. In Supabase, open Table Editor.
+8. Open `profiles` and find your user row.
+9. Open `roles` and copy the `id` for `super_admin`.
+10. Open `user_roles`.
+11. Insert a row:
    - `user_id`: your profile `id`
    - `role_id`: the `super_admin` role id
-10. Refresh the app. You should now land in `/admin`.
+12. Log in again. You should now land in `/admin`.
 
 After that, use `/admin/users` to assign roles to other users.
 
@@ -128,12 +153,10 @@ In Supabase:
 
 1. Make sure your university exists and is active.
 2. Open `/login`.
-3. Select your university.
-4. Enter a full name.
-5. Enter an email ending in the allowed domain.
-6. Click Send login link.
-7. Open the email and click the link.
-8. Confirm you reach `/dashboard` or `/admin` if your account has an admin role.
+3. Use the Sign up tab to create an account with a valid university email and password.
+4. If Supabase email confirmation is enabled, confirm the email.
+5. Use the Log in tab with the same university, email, and password.
+6. Confirm you reach `/dashboard` or `/admin` if your account has an admin role.
 
 ## Using the Admin Dashboard
 

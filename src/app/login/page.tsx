@@ -21,7 +21,7 @@ export default async function LoginPage() {
           </span>
           <h1 className="mt-5 text-2xl font-semibold tracking-tight">UniStudent Portal</h1>
           <p className="mt-2 text-sm leading-6 text-muted">
-            Sign in with your verified university email to access your private student community.
+            Log in or create an account with your verified university email.
           </p>
         </div>
         {universities?.length ? (
