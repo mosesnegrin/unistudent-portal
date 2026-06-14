@@ -218,28 +218,50 @@ export async function reportContent(formData: FormData) {
   revalidatePath("/");
 }
 
-export async function moderateContent(formData: FormData) {
-  const { profile, roles } = await requireAdmin();
-  const table = value(formData, "table");
-  const id = value(formData, "id");
-  const status = value(formData, "status") as ModerationStatus;
-  const allowedTables = ["events", "lessons", "materials", "marketplace_items", "offers", "guide_pages"];
-  if (!allowedTables.includes(table)) throw new Error("Unsupported moderation table.");
+export async function moderateContent(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const { profile, roles } = await requireAdmin();
+    const table = value(formData, "table");
+    const id = value(formData, "id");
+    const status = value(formData, "status") as ModerationStatus;
+    const allowedTables = ["events", "lessons", "materials", "marketplace_items", "offers", "guide_pages"];
+    if (!allowedTables.includes(table)) return { ok: false, error: "Unsupported content type." };
+    if (!id) return { ok: false, error: "Missing content id." };
 
-  const serviceClient = createServiceRoleClient();
-  const { data: record } = await serviceClient.from(table).select("university_id,is_austria_wide").eq("id", id).maybeSingle();
-  if (!record) throw new Error("Content item was not found.");
-  if (!roles.includes("super_admin") && record.university_id !== profile?.university_id) {
-    throw new Error("You can only manage content for your university.");
+    const serviceClient = createServiceRoleClient();
+    const { data: record, error: readError } = await serviceClient
+      .from(table)
+      .select("id,university_id")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (readError) return { ok: false, error: readError.message };
+    if (!record) return { ok: false, error: "This item no longer exists or was already removed." };
+    if (!roles.includes("super_admin") && record.university_id !== profile?.university_id) {
+      return { ok: false, error: "You can only manage content for your university." };
+    }
+
+    const update = table === "guide_pages"
+      ? { is_published: status === "approved" }
+      : { moderation_status: status, moderation_notes: nullable(formData, "notes") };
+    const { error: updateError } = await serviceClient.from(table).update(update).eq("id", id);
+    if (updateError) return { ok: false, error: updateError.message };
+
+    revalidatePath("/admin");
+    revalidatePath(`/admin/${table === "marketplace_items" ? "marketplace" : table}`);
+    revalidatePath("/");
+    if (table === "events") {
+      revalidatePath("/events");
+      revalidatePath("/dashboard");
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Unable to update content." };
   }
+}
 
-  const update = table === "guide_pages"
-    ? { is_published: status === "approved" }
-    : { moderation_status: status, moderation_notes: nullable(formData, "notes") };
-  await serviceClient.from(table).update(update).eq("id", id);
-  revalidatePath("/admin");
-  revalidatePath(`/admin/${table === "marketplace_items" ? "marketplace" : table}`);
-  revalidatePath("/");
+export async function moderateContentForm(formData: FormData): Promise<void> {
+  await moderateContent(formData);
 }
 
 export async function createOffer(formData: FormData) {
@@ -396,7 +418,7 @@ export async function deleteContent(table: string, id: string): Promise<{ ok: tr
       .maybeSingle();
 
     if (readError) return { ok: false, error: readError.message };
-    if (!record) return { ok: false, error: "Content item was not found." };
+    if (!record) return { ok: false, error: "This item no longer exists or was already removed." };
     if (!roles.includes("super_admin") && record.university_id !== profile?.university_id) {
       return { ok: false, error: "You can only delete content for your university." };
     }
@@ -407,6 +429,10 @@ export async function deleteContent(table: string, id: string): Promise<{ ok: tr
     revalidatePath("/admin");
     revalidatePath(`/admin/${table === "marketplace_items" ? "marketplace" : table}`);
     revalidatePath("/");
+    if (table === "events") {
+      revalidatePath("/events");
+      revalidatePath("/dashboard");
+    }
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Unable to delete content." };

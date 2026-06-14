@@ -68,12 +68,12 @@ export default async function AdminEventsPage() {
             { key: "location", label: "Location" },
             { key: "created_by_name", label: "Created by", render: (item) => {
               const row = item.created_by ? providerById.get(String(item.created_by)) : null;
-              return row?.full_name || row?.email || "";
+              return row?.full_name || row?.email || "Unknown user";
             } },
-            { key: "created_by_email", label: "Created by email", render: (item) => item.created_by ? providerById.get(String(item.created_by))?.email ?? "" : "" },
+            { key: "created_by_email", label: "Created by email", render: (item) => item.created_by ? providerById.get(String(item.created_by))?.email ?? "No email" : "No email" },
             { key: "price_cents", label: "Price/free", render: (item) => item.price_cents ? `EUR ${(Number(item.price_cents) / 100).toFixed(2)}` : "Free" },
             { key: "capacity", label: "Capacity" },
-            { key: "university", label: "University", render: (item) => item.university_id ? universityById.get(String(item.university_id))?.name ?? "" : "" },
+            { key: "university", label: "University", render: (item) => item.university_id ? universityById.get(String(item.university_id))?.name ?? "No university" : "No university" },
             {
               key: "rsvps",
               label: "RSVPs",

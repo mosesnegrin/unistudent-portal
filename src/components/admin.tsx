@@ -1,7 +1,8 @@
 import { CheckCircle2, XCircle } from "lucide-react";
 import type { ReactNode } from "react";
-import { assignRole, moderateContent, removeRole } from "@/app/actions";
+import { assignRole, moderateContentForm, removeRole } from "@/app/actions";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
+import { ModerationActionButton } from "@/components/moderation-actions";
 import { Panel, PrimaryButton, SelectField, StatusBadge, TextArea } from "@/components/ui";
 import type { UserRole } from "@/lib/types";
 
@@ -44,7 +45,7 @@ export function ModerationTable({
                 <td className="py-3 pr-3"><StatusBadge value={String(item.moderation_status)} /></td>
                 <td className="py-3 pr-3">{String(item.flag_count ?? 0)}</td>
                 <td className="py-3 pr-3">
-                  <form action={moderateContent} className="grid gap-2 sm:grid-cols-[160px_1fr_auto]">
+                  <form action={moderateContentForm} className="grid gap-2 sm:grid-cols-[160px_1fr_auto]">
                     <input type="hidden" name="table" value={table} />
                     <input type="hidden" name="id" value={String(item.id)} />
                     <SelectField label="Status" name="status" defaultValue={String(item.moderation_status)}>
@@ -124,19 +125,13 @@ export function ManagementTable({
                     <div className="flex flex-wrap gap-2">
                       {status === "pending" || status === "rejected" || status === "flagged" ? (
                         <>
-                          <form action={moderateContent}>
-                            <input type="hidden" name="table" value={table} />
-                            <input type="hidden" name="id" value={String(item.id)} />
-                            <input type="hidden" name="status" value="approved" />
-                            <button className="focus-ring min-h-9 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white">Approve</button>
-                          </form>
+                          <ModerationActionButton table={table} id={String(item.id)} status="approved">
+                            Approve
+                          </ModerationActionButton>
                           {status !== "rejected" ? (
-                            <form action={moderateContent}>
-                              <input type="hidden" name="table" value={table} />
-                              <input type="hidden" name="id" value={String(item.id)} />
-                              <input type="hidden" name="status" value="rejected" />
-                              <button className="focus-ring min-h-9 rounded-lg bg-rose-600 px-3 text-sm font-medium text-white">Reject</button>
-                            </form>
+                            <ModerationActionButton table={table} id={String(item.id)} status="rejected" tone="reject">
+                              Reject
+                            </ModerationActionButton>
                           ) : null}
                         </>
                       ) : null}
