@@ -47,6 +47,7 @@ npm run dev
 3. Run [supabase/migrations/001_initial_schema.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/001_initial_schema.sql) first if this is a new database.
 4. Run [supabase/migrations/002_auth_permissions_provider_info.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/002_auth_permissions_provider_info.sql) after the first migration.
 5. Run [supabase/migrations/003_fix_admin_queries_and_content_visibility.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/003_fix_admin_queries_and_content_visibility.sql) after the second migration.
+6. Run [supabase/migrations/004_fix_visibility_users_rsvp_actions.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/004_fix_visibility_users_rsvp_actions.sql) after the third migration.
 
 These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, and role-based insert permissions.
 
@@ -179,6 +180,10 @@ Admin moderation pages use table views. Pending rows show Approve and Reject act
 
 If `/admin/users` or admin tables are empty when data exists, check that `SUPABASE_SERVICE_ROLE_KEY` is present in `.env.local` and Vercel. Admin management reads use that key server-side only so RLS cannot hide legitimate admin data.
 
+`/admin/users` loads profiles, role assignments, and role names with separate server-side queries to avoid ambiguous Supabase relationship embeds.
+
+`/admin/events` shows RSVP counts for each event. Admins can expand the RSVP section to see participant name, email, phone, and registration time. Super admins see all event RSVPs; university admins see RSVPs only for their university events.
+
 ## Adding Real Content
 
 Content creation is role-based:
@@ -204,6 +209,20 @@ User-side content pages have tabs:
 - Offers: All offers, My offers/partner posts when allowed, Add offer when allowed
 
 Create/upload tabs are hidden unless the user has the correct role. If approved content does not show on user pages, confirm the item has `moderation_status = approved`, the user belongs to the same `university_id`, and the latest RLS migration has been run.
+
+Event registration types:
+
+- `internal_rsvp`: students register inside the portal and can cancel registration.
+- `external_link`: students use Register externally, which opens the external URL.
+- `contact_organizer`: students see Contact organizer with email/phone.
+- `none`: no registration button is shown.
+
+Action buttons:
+
+- Materials: Download for free files, Request material for request-based free materials, Contact seller for paid materials.
+- Marketplace: Contact seller.
+- Lessons: Request lesson for free lessons, Contact tutor for paid lessons.
+- Offers: Open offer when a link exists, Contact provider when only contact details exist.
 
 Admins can add:
 

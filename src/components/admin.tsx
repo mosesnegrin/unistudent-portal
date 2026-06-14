@@ -120,7 +120,7 @@ export function ManagementTable({
                   </td>
                   <td className="py-3 pr-3">
                     <div className="flex flex-wrap gap-2">
-                      {status === "pending" ? (
+                      {status === "pending" || status === "rejected" || status === "flagged" ? (
                         <>
                           <form action={moderateContent}>
                             <input type="hidden" name="table" value={table} />
@@ -128,12 +128,14 @@ export function ManagementTable({
                             <input type="hidden" name="status" value="approved" />
                             <button className="focus-ring min-h-9 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white">Approve</button>
                           </form>
-                          <form action={moderateContent}>
-                            <input type="hidden" name="table" value={table} />
-                            <input type="hidden" name="id" value={String(item.id)} />
-                            <input type="hidden" name="status" value="rejected" />
-                            <button className="focus-ring min-h-9 rounded-lg bg-rose-600 px-3 text-sm font-medium text-white">Reject</button>
-                          </form>
+                          {status !== "rejected" ? (
+                            <form action={moderateContent}>
+                              <input type="hidden" name="table" value={table} />
+                              <input type="hidden" name="id" value={String(item.id)} />
+                              <input type="hidden" name="status" value="rejected" />
+                              <button className="focus-ring min-h-9 rounded-lg bg-rose-600 px-3 text-sm font-medium text-white">Reject</button>
+                            </form>
+                          ) : null}
                         </>
                       ) : null}
                       <ConfirmDeleteButton table={table} id={String(item.id)} label={titleValue} />

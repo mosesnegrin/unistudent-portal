@@ -15,7 +15,7 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
     { href: "/materials?tab=requests", label: "My material requests/downloads" },
     ...(canCreateMaterial ? [{ href: "/materials?tab=create", label: "Upload material" }] : [])
   ];
-  const materialSelect = "id,course_name,title,description,is_free,price_cents,file_path,profiles(full_name,email,phone,user_roles(roles(name)))";
+  const materialSelect = "id,course_name,title,description,is_free,price_cents,file_path,profiles(full_name,email,phone)";
   const { data } = activeTab === "requests"
     ? await supabase.from("material_requests").select(`status,message,materials(${materialSelect})`).eq("requester_id", user.id).order("created_at", { ascending: false })
     : activeTab === "all"
@@ -28,6 +28,16 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
       })
     : ((data ?? []) as Array<Record<string, unknown>>)
   ).filter(Boolean) as Array<Record<string, unknown>>;
+  const downloadablePaths = materials
+    .filter((material) => material.is_free && material.file_path)
+    .map((material) => String(material.file_path));
+  const signedUrls = new Map<string, string>();
+  if (downloadablePaths.length) {
+    const { data: signed } = await supabase.storage.from("materials").createSignedUrls(downloadablePaths, 60 * 10);
+    for (const item of signed ?? []) {
+      if (item.path && item.signedUrl) signedUrls.set(item.path, item.signedUrl);
+    }
+  }
 
   return (
     <>
@@ -46,11 +56,22 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
                 </div>
                 <ProviderInfo provider={material.profiles as never} label="Offered by" />
               </div>
-              {activeTab === "all" ? <form action={requestMaterial} className="mt-4 space-y-3">
-                <input type="hidden" name="material_id" value={String(material.id)} />
-                <TextArea label={material.is_free ? "Request message" : "Paid material request"} name="message" />
-                <PrimaryButton>{material.is_free ? "Request/download" : "Request paid material"}</PrimaryButton>
-              </form> : null}
+              {activeTab === "all" ? (
+                material.is_free && material.file_path && signedUrls.get(String(material.file_path)) ? (
+                  <a className="focus-ring mt-4 inline-flex min-h-11 items-center rounded-lg bg-ink px-4 text-sm font-medium text-white" href={signedUrls.get(String(material.file_path))} target="_blank" rel="noreferrer">Download</a>
+                ) : material.is_free ? (
+                  <form action={requestMaterial} className="mt-4 space-y-3">
+                    <input type="hidden" name="material_id" value={String(material.id)} />
+                    <TextArea label="Request message" name="message" />
+                    <PrimaryButton>Request material</PrimaryButton>
+                  </form>
+                ) : (
+                  <details className="mt-4 rounded-lg bg-surface p-3 text-sm">
+                    <summary className="cursor-pointer font-medium">Contact seller</summary>
+                    <ProviderInfo provider={material.profiles as never} label="Seller contact" />
+                  </details>
+                )
+              ) : null}
             </Panel>
           )) : activeTab !== "create" ? <EmptyState title="No materials found" description="Materials for this view will appear here." /> : null}
         </div>

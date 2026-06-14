@@ -16,7 +16,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
   ];
   let query = supabase
     .from("offers")
-    .select("id,title,description,partner_name,discount_details,expires_at,link,is_austria_wide,profiles(full_name,email,phone,user_roles(roles(name)))")
+    .select("id,title,description,partner_name,discount_details,expires_at,link,is_austria_wide,profiles(full_name,email,phone)")
     .order("created_at", { ascending: false });
   if (activeTab === "mine") {
     query = query.eq("created_by", user.id);
@@ -43,6 +43,12 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
               <ProviderInfo provider={offer.profiles as never} label="Offered by" official={!offer.profiles} />
             </div>
             {offer.link ? <a className="mt-4 inline-block text-sm font-medium underline" href={offer.link}>Open offer</a> : null}
+            {!offer.link && offer.profiles ? (
+              <details className="mt-4 rounded-lg bg-surface p-3 text-sm">
+                <summary className="cursor-pointer font-medium">Contact provider</summary>
+                <ProviderInfo provider={offer.profiles as never} label="Provider contact" />
+              </details>
+            ) : null}
           </Panel>
         )) : activeTab !== "create" ? <EmptyState title="No offers found" description="Offers for this view will appear here." /> : null}
         </div>

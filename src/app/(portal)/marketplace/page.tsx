@@ -17,7 +17,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
   ];
   const { data: items } = await supabase
     .from("marketplace_items")
-    .select("id,title,description,price_cents,category,profiles(full_name,email,phone,user_roles(roles(name)))")
+    .select("id,title,description,price_cents,category,profiles(full_name,email,phone)")
     .eq(activeTab === "mine" ? "seller_id" : "moderation_status", activeTab === "mine" ? user.id : "approved")
     .eq("university_id", profile?.university_id)
     .order("created_at", { ascending: false });
@@ -39,6 +39,10 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
                 </div>
                 <ProviderInfo provider={item.profiles as never} label="Posted by" />
               </div>
+              <details className="mt-4 rounded-lg bg-surface p-3 text-sm">
+                <summary className="cursor-pointer font-medium">Contact seller</summary>
+                <ProviderInfo provider={item.profiles as never} label="Seller contact" />
+              </details>
             </Panel>
           )) : activeTab !== "create" ? <EmptyState title="No marketplace posts found" description="Marketplace posts for this view will appear here." /> : null}
         </div>

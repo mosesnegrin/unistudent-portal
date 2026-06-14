@@ -35,16 +35,30 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         </Panel>
         <div className="space-y-4">
           <Panel>
-            {rsvp?.status === "registered" ? (
+            {(event.registration_type ?? "internal_rsvp") === "internal_rsvp" ? (
+              rsvp?.status === "registered" ? (
               <form action={cancelRsvp}>
                 <input type="hidden" name="event_id" value={id} />
-                <PrimaryButton>Cancel RSVP</PrimaryButton>
+                <PrimaryButton>Cancel registration</PrimaryButton>
               </form>
             ) : (
               <form action={rsvpEvent}>
                 <input type="hidden" name="event_id" value={id} />
                 <PrimaryButton>Register</PrimaryButton>
               </form>
+              )
+            ) : event.registration_type === "external_link" && event.external_registration_url ? (
+              <a className="focus-ring inline-flex min-h-11 items-center rounded-lg bg-ink px-4 text-sm font-medium text-white" href={event.external_registration_url} target="_blank" rel="noreferrer">
+                Register externally
+              </a>
+            ) : event.registration_type === "contact_organizer" ? (
+              <div className="text-sm">
+                <p className="font-medium">Contact organizer</p>
+                {event.contact_email ? <a className="mt-2 block text-muted underline" href={`mailto:${event.contact_email}`}>{event.contact_email}</a> : null}
+                {event.contact_phone ? <p className="mt-1 text-muted">{event.contact_phone}</p> : null}
+              </div>
+            ) : (
+              <p className="text-sm text-muted">No registration is required.</p>
             )}
           </Panel>
           <Panel>

@@ -68,6 +68,8 @@ Use `university_admin` for admins who should manage only their university. Use `
 
 The user table shows full name, email, university, phone, roles, created date, and actions.
 
+The user table is loaded with separate server-side queries for profiles, user role assignments, and role names. This avoids Supabase relationship ambiguity between `profiles` and `user_roles`.
+
 ## Delete Users
 
 Only `super_admin` users can delete users in `/admin/users`. University admins do not see the delete button.
@@ -117,6 +119,8 @@ Admin moderation pages are table-based:
 
 Super admins see submitted content from every university. University admins see submitted content only from their own university.
 
+In `/admin/events`, each event row shows an RSVP count. Expanding it shows participant full name, email, phone when available, and registration date/time.
+
 ## User Page Tabs
 
 Students and partners see tabs on the content pages:
@@ -128,6 +132,23 @@ Students and partners see tabs on the content pages:
 - Offers: All offers, My offers/partner posts, Add offer when allowed
 
 Create/upload tabs are hidden unless the user has the correct role.
+
+Event registration types:
+
+- Internal RSVP: Register and Cancel registration happen in the portal.
+- External link: Register externally opens the provided URL.
+- Contact organizer: shows organizer email/phone.
+- None: no registration button appears.
+
+Button meanings:
+
+- Register: internal event RSVP.
+- Register externally: event registration happens outside the portal.
+- Contact seller: paid material or marketplace contact.
+- Contact tutor: paid lesson contact.
+- Request lesson/material: free request-based content.
+- Open offer: opens the partner offer link.
+- Contact provider: shows offer provider contact details.
 
 ## RLS Troubleshooting
 

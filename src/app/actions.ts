@@ -34,6 +34,10 @@ export async function createEvent(formData: FormData) {
     event_type: value(formData, "event_type"),
     capacity: numberOrNull(formData, "capacity"),
     price_cents: numberOrNull(formData, "price_cents"),
+    registration_type: value(formData, "registration_type") || "internal_rsvp",
+    external_registration_url: nullable(formData, "external_registration_url"),
+    contact_email: nullable(formData, "contact_email"),
+    contact_phone: nullable(formData, "contact_phone"),
     created_by: user.id,
     moderation_status: "pending"
   });

@@ -15,7 +15,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
     { href: "/lessons?tab=requests", label: "My lesson requests" },
     ...(canCreateLesson ? [{ href: "/lessons?tab=create", label: "Offer lesson" }] : [])
   ];
-  const lessonSelect = "id,course_name,tutor_name,grade_background,description,price_cents,session_type,availability,profiles(full_name,email,phone,user_roles(roles(name)))";
+  const lessonSelect = "id,course_name,tutor_name,grade_background,description,price_cents,session_type,availability,profiles(full_name,email,phone)";
   const { data } = activeTab === "requests"
     ? await supabase
         .from("lesson_requests")
@@ -56,11 +56,20 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
                 </div>
                 <ProviderInfo provider={lesson.profiles as never} label="Offered by" />
               </div>
-              {activeTab === "all" ? <form action={requestLesson} className="mt-4 space-y-3">
-                <input type="hidden" name="lesson_id" value={String(lesson.id)} />
-                <TextArea label="Message" name="message" />
-                <PrimaryButton>Request lesson</PrimaryButton>
-              </form> : null}
+              {activeTab === "all" ? (
+                lesson.price_cents ? (
+                  <details className="mt-4 rounded-lg bg-surface p-3 text-sm">
+                    <summary className="cursor-pointer font-medium">Contact tutor</summary>
+                    <ProviderInfo provider={lesson.profiles as never} label="Tutor contact" />
+                  </details>
+                ) : (
+                  <form action={requestLesson} className="mt-4 space-y-3">
+                    <input type="hidden" name="lesson_id" value={String(lesson.id)} />
+                    <TextArea label="Message" name="message" />
+                    <PrimaryButton>Request lesson</PrimaryButton>
+                  </form>
+                )
+              ) : null}
             </Panel>
           )) : activeTab !== "create" ? <EmptyState title="No lessons found" description="Lessons for this view will appear here." /> : null}
         </div>

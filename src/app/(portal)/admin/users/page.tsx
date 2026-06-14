@@ -16,10 +16,27 @@ export default async function AdminUsersPage({
   const universityId = roles.includes("super_admin") ? university : profile?.university_id;
   let query = adminClient
     .from("profiles")
-    .select("id,full_name,email,phone,is_active,university_id,created_at,universities(name),user_roles(roles(name))")
+    .select("id,full_name,email,phone,is_active,university_id,created_at,universities(name)")
     .order("created_at", { ascending: false });
   if (universityId) query = query.eq("university_id", universityId);
   const { data: users, error } = await query;
+  const userIds = (users ?? []).map((item) => item.id);
+  const [{ data: roleAssignments, error: roleAssignmentError }, { data: roleRows, error: rolesError }] = await Promise.all([
+    userIds.length
+      ? adminClient.from("user_roles").select("user_id,role_id").in("user_id", userIds)
+      : Promise.resolve({ data: [], error: null }),
+    adminClient.from("roles").select("id,name")
+  ]);
+  const roleNameById = new Map((roleRows ?? []).map((role) => [role.id, role.name]));
+  const rolesByUserId = new Map<string, string[]>();
+  for (const assignment of roleAssignments ?? []) {
+    const roleName = roleNameById.get(assignment.role_id);
+    if (!roleName) continue;
+    const existing = rolesByUserId.get(assignment.user_id) ?? [];
+    existing.push(roleName);
+    rolesByUserId.set(assignment.user_id, existing);
+  }
+  const combinedError = error ?? roleAssignmentError ?? rolesError;
 
   return (
     <>
@@ -35,9 +52,9 @@ export default async function AdminUsersPage({
           </form>
         </Panel>
       ) : null}
-      {error ? (
+      {combinedError ? (
         <Panel>
-          <p className="text-sm text-rose-700">{error.message}</p>
+          <p className="text-sm text-rose-700">{combinedError.message}</p>
         </Panel>
       ) : null}
       <Panel>
@@ -56,10 +73,7 @@ export default async function AdminUsersPage({
             </thead>
             <tbody>
               {(users ?? []).map((user) => {
-                const roleRows = (user.user_roles ?? []) as unknown as Array<{ roles: { name?: string } | { name?: string }[] | null }>;
-                const assigned = roleRows
-                  .map((item) => Array.isArray(item.roles) ? item.roles[0]?.name : item.roles?.name)
-                  .filter(Boolean) as string[];
+                const assigned = rolesByUserId.get(user.id) ?? [];
                 const universityRow = user.universities as unknown as { name?: string } | { name?: string }[] | null;
                 const universityName = (Array.isArray(universityRow) ? universityRow[0]?.name : universityRow?.name) ?? "";
                 return (
@@ -85,7 +99,7 @@ export default async function AdminUsersPage({
             </tbody>
           </table>
         </div>
-        {!error && !users?.length ? (
+        {!combinedError && !users?.length ? (
           <p className="mt-4 rounded-lg border border-dashed border-line bg-surface p-4 text-sm text-muted">
             No users found for the selected scope.
           </p>

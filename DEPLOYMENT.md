@@ -7,6 +7,7 @@ Create a Supabase project, then run the SQL migrations in order:
 1. [supabase/migrations/001_initial_schema.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/001_initial_schema.sql)
 2. [supabase/migrations/002_auth_permissions_provider_info.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/002_auth_permissions_provider_info.sql)
 3. [supabase/migrations/003_fix_admin_queries_and_content_visibility.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/003_fix_admin_queries_and_content_visibility.sql)
+4. [supabase/migrations/004_fix_visibility_users_rsvp_actions.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/004_fix_visibility_users_rsvp_actions.sql)
 
 After the migration, add your first university in the `universities` table.
 
@@ -80,12 +81,17 @@ Approved listings show who posted or offered them. Name and email are shown, and
 
 Moderation pages show pending, approved, and rejected content in one table. Pending rows can be approved or rejected. Any row can be deleted after confirmation. Approved content stays visible to admins after approval.
 
+`/admin/users` avoids ambiguous joins by loading profiles, user role assignments, and roles separately on the server. `/admin/events` includes RSVP counts and expandable participant lists.
+
+Events can use internal RSVP, external registration links, organizer contact details, or no registration button.
+
 If users or approved content do not appear, verify:
 
 - `SUPABASE_SERVICE_ROLE_KEY` exists in Vercel.
 - The latest SQL migration has been run.
 - Public content has `moderation_status = approved`.
 - The viewer profile has the correct `university_id`.
+- Event pages show current/future approved events; check event dates if a past event is not visible in the default event tab.
 
 ## 8. Test Production
 
@@ -97,3 +103,4 @@ If users or approved content do not appear, verify:
 6. Log in with the same email and password.
 7. Confirm the app opens `/dashboard` or `/admin` depending on assigned roles.
 8. Confirm content tabs appear on user pages, and create/upload tabs appear only for users with the correct roles.
+9. Confirm event RSVP lists appear for admins in `/admin/events`.
