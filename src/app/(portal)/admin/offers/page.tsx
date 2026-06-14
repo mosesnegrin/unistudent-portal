@@ -1,11 +1,30 @@
 import { createOffer } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
+import { ManagementTable } from "@/components/admin";
 import { Field, PageHeader, Panel, PrimaryButton, SelectField, TextArea } from "@/components/ui";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
+
+function provider(item: Record<string, unknown>, field: "full_name" | "email") {
+  const profile = item.profiles as { full_name?: string | null; email?: string | null } | null;
+  return profile?.[field] ?? "";
+}
+
+function scope(item: Record<string, unknown>) {
+  if (item.is_austria_wide) return "Austria-wide";
+  const row = item.universities as { name?: string | null } | null;
+  return row?.name ?? "Global";
+}
 
 export default async function AdminOffersPage() {
-  const { supabase, roles } = await requireAdmin();
+  const { supabase, profile, roles } = await requireAdmin();
+  const adminClient = createServiceRoleClient();
+  let offersQuery = adminClient
+    .from("offers")
+    .select("id,title,description,partner_name,discount_details,expires_at,is_austria_wide,moderation_status,profiles(full_name,email),universities(name)")
+    .order("created_at", { ascending: false });
+  if (!roles.includes("super_admin")) offersQuery = offersQuery.eq("university_id", profile?.university_id);
   const [{ data: offers }, { data: universities }] = await Promise.all([
-    supabase.from("offers").select("id,title,partner_name,discount_details,expires_at").order("created_at", { ascending: false }),
+    offersQuery,
     supabase.from("universities").select("id,name").order("name")
   ]);
 
@@ -35,17 +54,20 @@ export default async function AdminOffersPage() {
             <PrimaryButton>Create offer</PrimaryButton>
           </form>
         </Panel>
-        <Panel>
-          <h2 className="font-semibold">Existing offers</h2>
-          <div className="mt-4 space-y-3">
-            {offers?.length ? offers.map((offer) => (
-              <div key={offer.id} className="rounded-lg bg-surface p-3">
-                <p className="font-medium">{offer.title}</p>
-                <p className="mt-1 text-sm text-muted">{offer.partner_name} · {offer.discount_details}</p>
-              </div>
-            )) : <p className="text-sm text-muted">No offers added yet.</p>}
-          </div>
-        </Panel>
+        <ManagementTable
+          title="Offers"
+          table="offers"
+          items={(offers ?? []) as Array<Record<string, unknown>>}
+          columns={[
+            { key: "title", label: "Title" },
+            { key: "description", label: "Description" },
+            { key: "partner_name", label: "Partner/offered by" },
+            { key: "contact", label: "Email/contact", render: (item) => provider(item, "email") },
+            { key: "discount_details", label: "Discount details" },
+            { key: "expires_at", label: "Expiry date" },
+            { key: "scope", label: "University/global", render: scope }
+          ]}
+        />
       </div>
     </>
   );

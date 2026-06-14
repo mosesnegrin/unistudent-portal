@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { CalendarDays, HandCoins, MessagesSquare, NotebookTabs, ShoppingBag, TicketPercent } from "lucide-react";
 import { getSessionContext } from "@/lib/auth";
-import { EmptyState, PageHeader, Panel, SecondaryLink } from "@/components/ui";
+import { PageHeader, Panel, SecondaryLink } from "@/components/ui";
 
 export default async function DashboardPage() {
   const { supabase, profile, isAdmin } = await getSessionContext();
@@ -97,9 +97,6 @@ export default async function DashboardPage() {
             <p className="mt-3 text-sm leading-6 text-muted">No offers are available yet.</p>
           )}
         </Panel>
-      </div>
-      <div className="mt-6">
-        <EmptyState title="Real content only" description="This portal starts empty. Add universities, announcements, events, offers, lessons, notes, and posts from Supabase or the admin dashboard." />
       </div>
     </>
   );

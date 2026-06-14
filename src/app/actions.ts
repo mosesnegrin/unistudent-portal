@@ -188,21 +188,31 @@ export async function reportContent(formData: FormData) {
 }
 
 export async function moderateContent(formData: FormData) {
-  const { supabase } = await requireAdmin();
+  const { profile, roles } = await requireAdmin();
   const table = value(formData, "table");
   const id = value(formData, "id");
   const status = value(formData, "status") as ModerationStatus;
-  const allowedTables = ["events", "lessons", "materials", "marketplace_items"];
+  const allowedTables = ["events", "lessons", "materials", "marketplace_items", "offers"];
   if (!allowedTables.includes(table)) throw new Error("Unsupported moderation table.");
 
-  await supabase.from(table).update({ moderation_status: status, moderation_notes: nullable(formData, "notes") }).eq("id", id);
+  const serviceClient = createServiceRoleClient();
+  const { data: record } = await serviceClient.from(table).select("university_id,is_austria_wide").eq("id", id).maybeSingle();
+  if (!record) throw new Error("Content item was not found.");
+  if (!roles.includes("super_admin") && record.university_id !== profile?.university_id) {
+    throw new Error("You can only manage content for your university.");
+  }
+
+  await serviceClient.from(table).update({ moderation_status: status, moderation_notes: nullable(formData, "notes") }).eq("id", id);
   revalidatePath("/admin");
+  revalidatePath(`/admin/${table === "marketplace_items" ? "marketplace" : table}`);
+  revalidatePath("/");
 }
 
 export async function createOffer(formData: FormData) {
   const { supabase, profile, roles } = await getSessionContext();
   if (!canCreate(roles, "offers")) throw new Error(noCreatePermissionMessage("offer"));
   const isSuperAdmin = roles.includes("super_admin");
+  const isAdmin = roles.includes("super_admin") || roles.includes("university_admin");
   const isAustriaWide = isSuperAdmin && value(formData, "is_austria_wide") === "true";
   await supabase.from("offers").insert({
     title: value(formData, "title"),
@@ -213,7 +223,8 @@ export async function createOffer(formData: FormData) {
     link: nullable(formData, "link"),
     university_id: isSuperAdmin ? nullable(formData, "university_id") : profile?.university_id,
     is_austria_wide: isAustriaWide,
-    created_by: (await supabase.auth.getUser()).data.user?.id
+    created_by: (await supabase.auth.getUser()).data.user?.id,
+    moderation_status: isAdmin ? "approved" : "pending"
   });
   revalidatePath("/admin/offers");
   revalidatePath("/offers");
@@ -308,6 +319,39 @@ export async function deleteUser(userId: string): Promise<{ ok: true } | { ok: f
       ok: false,
       error: error instanceof Error ? error.message : "Unable to delete user."
     };
+  }
+}
+
+export async function deleteContent(table: string, id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const { profile, roles } = await requireAdmin();
+    const allowedTables = ["events", "lessons", "materials", "marketplace_items", "offers"];
+    if (!allowedTables.includes(table)) {
+      return { ok: false, error: "Unsupported content type." };
+    }
+
+    const serviceClient = createServiceRoleClient();
+    const { data: record, error: readError } = await serviceClient
+      .from(table)
+      .select("university_id,is_austria_wide")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (readError) return { ok: false, error: readError.message };
+    if (!record) return { ok: false, error: "Content item was not found." };
+    if (!roles.includes("super_admin") && record.university_id !== profile?.university_id) {
+      return { ok: false, error: "You can only delete content for your university." };
+    }
+
+    const { error } = await serviceClient.from(table).delete().eq("id", id);
+    if (error) return { ok: false, error: error.message };
+
+    revalidatePath("/admin");
+    revalidatePath(`/admin/${table === "marketplace_items" ? "marketplace" : table}`);
+    revalidatePath("/");
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Unable to delete content." };
   }
 }
 

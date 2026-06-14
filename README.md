@@ -46,6 +46,7 @@ npm run dev
 2. Go to SQL Editor.
 3. Run [supabase/migrations/001_initial_schema.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/001_initial_schema.sql) first if this is a new database.
 4. Run [supabase/migrations/002_auth_permissions_provider_info.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/002_auth_permissions_provider_info.sql) after the first migration.
+5. Run [supabase/migrations/003_fix_admin_queries_and_content_visibility.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/003_fix_admin_queries_and_content_visibility.sql) after the second migration.
 
 These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, and role-based insert permissions.
 
@@ -172,6 +173,12 @@ In Supabase:
 - `/admin/reports`: review reports and flagged content
 - `/admin/universities`: add universities and guide pages
 
+Super admins see users and submitted content across all universities. University admins see only users and submitted content for their own university.
+
+Admin moderation pages use table views. Pending rows show Approve and Reject actions. Approved rows remain visible with a green approved badge. Rejected rows remain visible with a red rejected badge. Delete is available for pending, approved, and rejected content with a confirmation dialog.
+
+If `/admin/users` or admin tables are empty when data exists, check that `SUPABASE_SERVICE_ROLE_KEY` is present in `.env.local` and Vercel. Admin management reads use that key server-side only so RLS cannot hide legitimate admin data.
+
 ## Adding Real Content
 
 Content creation is role-based:
@@ -187,6 +194,16 @@ Normal user-created content starts as `pending`. Admins approve it before it app
 Approved listings show provider information on the right side. The app shows name, email, and phone when the profile has a phone number. If an admin created the listing, it displays `Official / Admin` with the admin email when available.
 
 Users can add an optional phone number in `/profile`.
+
+User-side content pages have tabs:
+
+- Events: All future events, My registered events, Create event when allowed
+- Lessons: All lessons, My lesson requests, Offer lesson when allowed
+- Materials: All materials, My material requests/downloads, Upload material when allowed
+- Marketplace: All items, My marketplace posts, Sell item when allowed
+- Offers: All offers, My offers/partner posts when allowed, Add offer when allowed
+
+Create/upload tabs are hidden unless the user has the correct role. If approved content does not show on user pages, confirm the item has `moderation_status = approved`, the user belongs to the same `university_id`, and the latest RLS migration has been run.
 
 Admins can add:
 

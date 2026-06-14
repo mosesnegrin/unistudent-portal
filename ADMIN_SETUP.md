@@ -61,6 +61,13 @@ Use `/admin/users`:
 
 Use `university_admin` for admins who should manage only their university. Use `super_admin` only for people who can manage all universities.
 
+`/admin/users` visibility:
+
+- Super admin: sees all users from all universities.
+- University admin: sees only users from their own university.
+
+The user table shows full name, email, university, phone, roles, created date, and actions.
+
 ## Delete Users
 
 Only `super_admin` users can delete users in `/admin/users`. University admins do not see the delete button.
@@ -98,3 +105,36 @@ Creation permissions:
 - Offers/partnerships: `partner`, `university_admin`, `super_admin`
 
 Approved listings show provider/contact information. Users can add an optional phone number in `/profile`; phone is shown publicly only when completed. Admin-created listings show `Official / Admin` with the admin email when available.
+
+## Moderation Workflow
+
+Admin moderation pages are table-based:
+
+- Pending items show Approve and Reject.
+- Approved items stay visible with a green approved badge.
+- Rejected items stay visible with a red rejected badge.
+- Delete is available on pending, approved, and rejected items after confirmation.
+
+Super admins see submitted content from every university. University admins see submitted content only from their own university.
+
+## User Page Tabs
+
+Students and partners see tabs on the content pages:
+
+- Events: All future events, My registered events, Create event when allowed
+- Lessons: All lessons, My lesson requests, Offer lesson when allowed
+- Materials: All materials, My material requests/downloads, Upload material when allowed
+- Marketplace: All items, My marketplace posts, Sell item when allowed
+- Offers: All offers, My offers/partner posts, Add offer when allowed
+
+Create/upload tabs are hidden unless the user has the correct role.
+
+## RLS Troubleshooting
+
+If content does not show:
+
+1. Confirm the latest migration was run.
+2. Confirm the content has `moderation_status = approved`.
+3. Confirm the user profile has the correct `university_id`.
+4. Confirm the admin has `super_admin` or `university_admin` in `user_roles`.
+5. Confirm `SUPABASE_SERVICE_ROLE_KEY` is set for admin management pages.

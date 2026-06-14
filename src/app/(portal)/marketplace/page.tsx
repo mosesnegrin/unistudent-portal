@@ -1,25 +1,34 @@
 import { createMarketplaceItem } from "@/app/actions";
 import { getSessionContext } from "@/lib/auth";
-import { canCreate, noCreatePermissionMessage } from "@/lib/permissions";
+import { canCreate } from "@/lib/permissions";
 import { ProviderInfo } from "@/components/provider-info";
+import { SubNav } from "@/components/subnav";
 import { EmptyState, Field, PageHeader, Panel, PrimaryButton, TextArea } from "@/components/ui";
 
-export default async function MarketplacePage() {
-  const { supabase, profile, roles } = await getSessionContext();
+export default async function MarketplacePage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab: requestedTab } = await searchParams;
+  const { supabase, profile, roles, user } = await getSessionContext();
   const canCreateItem = canCreate(roles, "marketplace");
+  const activeTab = requestedTab === "mine" || (requestedTab === "create" && canCreateItem) ? requestedTab : "all";
+  const nav = [
+    { href: "/marketplace", label: "All items" },
+    { href: "/marketplace?tab=mine", label: "My marketplace posts" },
+    ...(canCreateItem ? [{ href: "/marketplace?tab=create", label: "Sell item" }] : [])
+  ];
   const { data: items } = await supabase
     .from("marketplace_items")
     .select("id,title,description,price_cents,category,profiles(full_name,email,phone,user_roles(roles(name)))")
-    .eq("moderation_status", "approved")
+    .eq(activeTab === "mine" ? "seller_id" : "moderation_status", activeTab === "mine" ? user.id : "approved")
     .eq("university_id", profile?.university_id)
     .order("created_at", { ascending: false });
 
   return (
     <>
       <PageHeader title="Marketplace" description="Buy and sell student items after moderation approval." />
+      <SubNav items={nav} active={activeTab} />
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="space-y-3">
-          {items?.length ? items.map((item) => (
+          {activeTab !== "create" && items?.length ? items.map((item) => (
             <Panel key={item.id}>
               <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
                 <div>
@@ -31,9 +40,9 @@ export default async function MarketplacePage() {
                 <ProviderInfo provider={item.profiles as never} label="Posted by" />
               </div>
             </Panel>
-          )) : <EmptyState title="No approved marketplace posts yet" description="Approved buy/sell posts will appear here." />}
+          )) : activeTab !== "create" ? <EmptyState title="No marketplace posts found" description="Marketplace posts for this view will appear here." /> : null}
         </div>
-        {canCreateItem ? (
+        {activeTab === "create" && canCreateItem ? (
           <Panel>
             <h2 className="font-semibold">Post item</h2>
             <form action={createMarketplaceItem} className="mt-4 space-y-4">
@@ -44,9 +53,7 @@ export default async function MarketplacePage() {
               <PrimaryButton>Submit for approval</PrimaryButton>
             </form>
           </Panel>
-        ) : (
-          <EmptyState title="Permission required" description={noCreatePermissionMessage("marketplace item")} />
-        )}
+        ) : null}
       </div>
     </>
   );

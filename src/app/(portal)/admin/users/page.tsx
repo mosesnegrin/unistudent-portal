@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { PageHeader, Panel, SelectField } from "@/components/ui";
 import { RoleManager } from "@/components/admin";
 import { DeleteUserButton } from "@/components/delete-user-button";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 export default async function AdminUsersPage({
   searchParams
@@ -9,12 +10,16 @@ export default async function AdminUsersPage({
   searchParams: Promise<{ university?: string }>;
 }) {
   const { university } = await searchParams;
-  const { supabase, profile, roles, user: currentUser } = await requireAdmin();
-  const { data: universities } = await supabase.from("universities").select("id,name").order("name");
+  const { profile, roles, user: currentUser } = await requireAdmin();
+  const adminClient = createServiceRoleClient();
+  const { data: universities } = await adminClient.from("universities").select("id,name").order("name");
   const universityId = roles.includes("super_admin") ? university : profile?.university_id;
-  let query = supabase.from("profiles").select("id,full_name,email,is_active,university_id,universities(name),user_roles(roles(name))").order("created_at", { ascending: false });
+  let query = adminClient
+    .from("profiles")
+    .select("id,full_name,email,phone,is_active,university_id,created_at,universities(name),user_roles(roles(name))")
+    .order("created_at", { ascending: false });
   if (universityId) query = query.eq("university_id", universityId);
-  const { data: users } = await query;
+  const { data: users, error } = await query;
 
   return (
     <>
@@ -30,6 +35,11 @@ export default async function AdminUsersPage({
           </form>
         </Panel>
       ) : null}
+      {error ? (
+        <Panel>
+          <p className="text-sm text-rose-700">{error.message}</p>
+        </Panel>
+      ) : null}
       <Panel>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-sm">
@@ -38,12 +48,14 @@ export default async function AdminUsersPage({
                 <th className="py-2 pr-3 font-medium">User</th>
                 <th className="py-2 pr-3 font-medium">Email</th>
                 <th className="py-2 pr-3 font-medium">University</th>
+                <th className="py-2 pr-3 font-medium">Phone</th>
                 <th className="py-2 pr-3 font-medium">Roles</th>
+                <th className="py-2 pr-3 font-medium">Created</th>
                 {roles.includes("super_admin") ? <th className="py-2 pr-3 font-medium">Delete</th> : null}
               </tr>
             </thead>
             <tbody>
-              {users?.map((user) => {
+              {(users ?? []).map((user) => {
                 const roleRows = (user.user_roles ?? []) as unknown as Array<{ roles: { name?: string } | { name?: string }[] | null }>;
                 const assigned = roleRows
                   .map((item) => Array.isArray(item.roles) ? item.roles[0]?.name : item.roles?.name)
@@ -55,7 +67,9 @@ export default async function AdminUsersPage({
                     <td className="py-3 pr-3 font-medium">{user.full_name}</td>
                     <td className="py-3 pr-3">{user.email}</td>
                     <td className="py-3 pr-3">{universityName}</td>
+                    <td className="py-3 pr-3">{user.phone ?? ""}</td>
                     <td className="py-3 pr-3"><RoleManager userId={user.id} roles={assigned} /></td>
+                    <td className="py-3 pr-3">{user.created_at ? new Date(user.created_at).toLocaleDateString() : ""}</td>
                     {roles.includes("super_admin") ? (
                       <td className="py-3 pr-3">
                         <DeleteUserButton
@@ -71,6 +85,11 @@ export default async function AdminUsersPage({
             </tbody>
           </table>
         </div>
+        {!error && !users?.length ? (
+          <p className="mt-4 rounded-lg border border-dashed border-line bg-surface p-4 text-sm text-muted">
+            No users found for the selected scope.
+          </p>
+        ) : null}
       </Panel>
     </>
   );

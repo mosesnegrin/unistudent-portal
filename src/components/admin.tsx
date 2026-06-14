@@ -1,4 +1,7 @@
+import { CheckCircle2, XCircle } from "lucide-react";
+import type { ReactNode } from "react";
 import { assignRole, moderateContent, removeRole } from "@/app/actions";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { Panel, PrimaryButton, SelectField, StatusBadge, TextArea } from "@/components/ui";
 import type { UserRole } from "@/lib/types";
 
@@ -62,6 +65,87 @@ export function ModerationTable({
         </table>
       </div>
       {!items.length ? <p className="mt-4 text-sm text-muted">No records are waiting here.</p> : null}
+    </Panel>
+  );
+}
+
+export type AdminColumn = {
+  key: string;
+  label: string;
+  render?: (item: Record<string, unknown>) => ReactNode;
+};
+
+export function ManagementTable({
+  title,
+  table,
+  items,
+  columns
+}: {
+  title: string;
+  table: string;
+  items: Array<Record<string, unknown>>;
+  columns: AdminColumn[];
+}) {
+  return (
+    <Panel>
+      <h2 className="font-semibold">{title}</h2>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[1120px] text-left text-sm">
+          <thead className="text-muted">
+            <tr className="border-b border-line">
+              {columns.map((column) => (
+                <th key={column.key} className="py-2 pr-3 font-medium">{column.label}</th>
+              ))}
+              <th className="py-2 pr-3 font-medium">Status</th>
+              <th className="py-2 pr-3 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => {
+              const status = String(item.moderation_status ?? "approved");
+              const titleValue = String(item.title ?? item.course_name ?? "Untitled");
+              return (
+                <tr key={String(item.id)} className="border-b border-line align-top last:border-0">
+                  {columns.map((column) => (
+                    <td key={column.key} className="max-w-72 py-3 pr-3">
+                      {column.render ? column.render(item) : String(item[column.key] ?? "")}
+                    </td>
+                  ))}
+                  <td className="py-3 pr-3">
+                    <div className="flex items-center gap-2">
+                      {status === "approved" ? <CheckCircle2 className="text-emerald-600" size={17} /> : null}
+                      {status === "rejected" ? <XCircle className="text-rose-600" size={17} /> : null}
+                      <StatusBadge value={status} />
+                    </div>
+                  </td>
+                  <td className="py-3 pr-3">
+                    <div className="flex flex-wrap gap-2">
+                      {status === "pending" ? (
+                        <>
+                          <form action={moderateContent}>
+                            <input type="hidden" name="table" value={table} />
+                            <input type="hidden" name="id" value={String(item.id)} />
+                            <input type="hidden" name="status" value="approved" />
+                            <button className="focus-ring min-h-9 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white">Approve</button>
+                          </form>
+                          <form action={moderateContent}>
+                            <input type="hidden" name="table" value={table} />
+                            <input type="hidden" name="id" value={String(item.id)} />
+                            <input type="hidden" name="status" value="rejected" />
+                            <button className="focus-ring min-h-9 rounded-lg bg-rose-600 px-3 text-sm font-medium text-white">Reject</button>
+                          </form>
+                        </>
+                      ) : null}
+                      <ConfirmDeleteButton table={table} id={String(item.id)} label={titleValue} />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {!items.length ? <p className="mt-4 text-sm text-muted">No submitted content found.</p> : null}
     </Panel>
   );
 }
