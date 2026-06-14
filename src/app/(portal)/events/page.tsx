@@ -3,12 +3,12 @@ import { cancelRsvp, rsvpEvent } from "@/app/actions";
 import { getSessionContext } from "@/lib/auth";
 import { canCreate } from "@/lib/permissions";
 import { ProviderInfo } from "@/components/provider-info";
-import { SubNav } from "@/components/subnav";
+import { CategoryFilter, SubNav } from "@/components/subnav";
 import { CategoryLabel } from "@/components/category-icon";
-import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, StatusBadge, TextArea } from "@/components/ui";
+import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, TextArea } from "@/components/ui";
 
-export default async function EventsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const { tab: requestedTab } = await searchParams;
+export default async function EventsPage({ searchParams }: { searchParams: Promise<{ tab?: string; category?: string }> }) {
+  const { tab: requestedTab, category: activeCategory } = await searchParams;
   const { supabase, profile, roles, user } = await getSessionContext();
   const canCreateEvent = canCreate(roles, "events");
   const activeTab = requestedTab === "registered" || (requestedTab === "create" && canCreateEvent) ? requestedTab : "all";
@@ -49,7 +49,11 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
       })
     : ((events ?? []) as Array<Record<string, unknown>>)
   ).filter(Boolean) as Array<Record<string, unknown>>;
-  const providerIds = Array.from(new Set(visibleEvents.map((event) => event.created_by).filter(Boolean).map(String)));
+  const categories = visibleEvents.map((event) => String(event.event_type ?? "")).filter(Boolean);
+  const filteredEvents = activeCategory
+    ? visibleEvents.filter((event) => String(event.event_type ?? "") === activeCategory)
+    : visibleEvents;
+  const providerIds = Array.from(new Set(filteredEvents.map((event) => event.created_by).filter(Boolean).map(String)));
   const { data: providers } = providerIds.length
     ? await supabase.from("profiles").select("id,full_name,email,phone").in("id", providerIds)
     : { data: [] };
@@ -59,18 +63,16 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
     <>
       <PageHeader title="Events" description="Browse approved events and submit new events for moderation." />
       <SubNav items={nav} active={activeTab} />
+      {activeTab !== "create" ? <CategoryFilter basePath="/events" categories={categories} activeCategory={activeCategory} activeTab={activeTab} /> : null}
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="space-y-3">
-          {activeTab !== "create" && visibleEvents?.length ? (
-            visibleEvents.map((event) => (
+          {activeTab !== "create" && filteredEvents?.length ? (
+            filteredEvents.map((event) => (
               <Panel key={String(event.id)}>
                 <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
                   <div>
-                    <div className="flex items-start justify-between gap-3">
-                      <a href={`/events/${String(event.id)}`} className="font-semibold underline-offset-4 hover:underline">{String(event.title)}</a>
-                      <StatusBadge value={String(event.event_type)} />
-                    </div>
-                    <p className="mt-1 text-sm text-muted"><CategoryLabel category={String(event.event_type)} /></p>
+                    <a href={`/events/${String(event.id)}`} className="text-base font-semibold underline-offset-4 hover:underline">{String(event.title)}</a>
+                    <div className="mt-2"><CategoryLabel category={String(event.event_type)} /></div>
                     <p className="mt-1 text-sm text-muted">{new Date(String(event.starts_at)).toLocaleString()} · {String(event.location)}</p>
                     <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted">{String(event.description)}</p>
                     {String(event.registration_type ?? "internal_rsvp") === "internal_rsvp" ? (

@@ -91,9 +91,8 @@ Use the admin dashboard:
 
 - Add universities in `/admin/universities`
 - Manage guide material in `/admin/guide`
-- Manage guide material in `/admin/guide`
 - Add offers in `/admin/offers`
-- Add announcements in `/admin/announcements`
+- Add and delete announcements in `/admin/announcements`
 - Review reported content in `/admin/reports`
 - Approve student submissions in moderation pages
 
@@ -107,7 +106,7 @@ Creation permissions:
 - Marketplace items: `student`, `university_admin`, `super_admin`
 - Offers/partnerships: `partner`, `university_admin`, `super_admin`
 
-Approved listings show provider/contact information. Users can add an optional phone number in `/profile`; phone is shown publicly only when completed. Admin-created listings show `Official / Admin` with the admin email when available.
+Approved listings show provider/contact information. Users can add an optional phone number in `/profile`; phone is shown publicly only when completed. Profile email is read-only and cannot be changed from the profile form. Admin-created listings show `Official / Admin` with the admin email when available.
 
 ## Moderation Workflow
 
@@ -119,6 +118,8 @@ Admin moderation pages are table-based:
 - Delete is available on pending, approved, and rejected items after confirmation.
 
 Super admins see submitted content from every university. University admins see submitted content only from their own university.
+
+Official announcements also have a confirmation-based Delete button in `/admin/announcements`. Super admins can delete all announcements. University admins can delete only announcements for their own university.
 
 In `/admin/events`, each event row shows an RSVP count. Expanding it shows participant full name, email, phone when available, and registration date/time.
 
@@ -135,6 +136,8 @@ Students and partners see tabs on the content pages:
 - Offers: All offers, My offers/partner posts, Add offer when allowed
 
 Create/upload tabs are hidden unless the user has the correct role.
+
+Pages with categories show a second filter bar below the main tabs. Stored category keys are formatted automatically, so `required_documents` appears as `Required Documents` and `external_partner_event` appears as `External Partner Event`.
 
 Event registration types:
 

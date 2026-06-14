@@ -1,12 +1,13 @@
 import { createMarketplaceItem } from "@/app/actions";
 import { getSessionContext } from "@/lib/auth";
 import { canCreate } from "@/lib/permissions";
+import { CategoryLabel } from "@/components/category-icon";
 import { ProviderInfo } from "@/components/provider-info";
-import { SubNav } from "@/components/subnav";
+import { CategoryFilter, SubNav } from "@/components/subnav";
 import { EmptyState, Field, PageHeader, Panel, PrimaryButton, TextArea } from "@/components/ui";
 
-export default async function MarketplacePage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const { tab: requestedTab } = await searchParams;
+export default async function MarketplacePage({ searchParams }: { searchParams: Promise<{ tab?: string; category?: string }> }) {
+  const { tab: requestedTab, category: activeCategory } = await searchParams;
   const { supabase, profile, roles, user } = await getSessionContext();
   const canCreateItem = canCreate(roles, "marketplace");
   const activeTab = requestedTab === "mine" || (requestedTab === "create" && canCreateItem) ? requestedTab : "all";
@@ -22,19 +23,22 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
     .eq("university_id", profile?.university_id)
     .or(activeTab === "mine" ? "id.not.is.null" : `auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
     .order("created_at", { ascending: false });
+  const categories = (items ?? []).map((item) => item.category).filter(Boolean);
+  const filteredItems = activeCategory ? (items ?? []).filter((item) => item.category === activeCategory) : (items ?? []);
 
   return (
     <>
       <PageHeader title="Marketplace" description="Buy and sell student items after moderation approval." />
       <SubNav items={nav} active={activeTab} />
+      {activeTab !== "create" ? <CategoryFilter basePath="/marketplace" categories={categories} activeCategory={activeCategory} activeTab={activeTab} /> : null}
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="space-y-3">
-          {activeTab !== "create" && items?.length ? items.map((item) => (
+          {activeTab !== "create" && filteredItems?.length ? filteredItems.map((item) => (
             <Panel key={item.id}>
               <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
                 <div>
-                  <h2 className="font-semibold">{item.title}</h2>
-                  <p className="mt-1 text-sm text-muted">{item.category}</p>
+                  <h2 className="text-base font-semibold">{item.title}</h2>
+                  <div className="mt-2"><CategoryLabel category={item.category} /></div>
                   <p className="mt-3 text-sm leading-6 text-muted">{item.description}</p>
                   <p className="mt-3 text-sm font-medium">{item.price_cents ? `EUR ${(item.price_cents / 100).toFixed(2)}` : "Free"}</p>
                 </div>

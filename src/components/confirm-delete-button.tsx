@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2, X } from "lucide-react";
 import { deleteContent } from "@/app/actions";
 
@@ -16,6 +17,7 @@ export function ConfirmDeleteButton({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   function confirm() {
     setError(null);
@@ -26,6 +28,7 @@ export function ConfirmDeleteButton({
         return;
       }
       setOpen(false);
+      router.refresh();
     });
   }
 

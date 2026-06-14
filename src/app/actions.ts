@@ -254,6 +254,9 @@ export async function moderateContent(formData: FormData): Promise<{ ok: true } 
       revalidatePath("/events");
       revalidatePath("/dashboard");
     }
+    if (table === "announcements") {
+      revalidatePath("/dashboard");
+    }
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Unable to update content." };

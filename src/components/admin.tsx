@@ -90,12 +90,12 @@ export function ManagementTable({
   return (
     <Panel>
       <h2 className="font-semibold">{title}</h2>
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-line">
         <table className="w-full min-w-[1120px] text-left text-sm">
-          <thead className="text-muted">
+          <thead className="bg-surface text-muted">
             <tr className="border-b border-line">
-              {columns.map((column) => (
-                <th key={column.key} className="py-2 pr-3 font-medium">{column.label}</th>
+              {columns.map((column, index) => (
+                <th key={column.key} className={`py-3 pr-3 font-medium ${index === 0 ? "pl-3" : ""}`}>{column.label}</th>
               ))}
               <th className="py-2 pr-3 font-medium">Status</th>
               <th className="py-2 pr-3 font-medium">Actions</th>
@@ -107,9 +107,9 @@ export function ManagementTable({
               const titleValue = String(item.title ?? item.course_name ?? "Untitled");
               const expired = Boolean(item.auto_delete_at && new Date(String(item.auto_delete_at)) <= new Date());
               return (
-                <tr key={String(item.id)} className="border-b border-line align-top last:border-0">
-                  {columns.map((column) => (
-                    <td key={column.key} className="max-w-72 py-3 pr-3">
+                <tr key={String(item.id)} className="border-b border-line bg-white align-top transition hover:bg-surface/60 last:border-0">
+                  {columns.map((column, index) => (
+                    <td key={column.key} className={`max-w-72 py-3 pr-3 ${index === 0 ? "pl-3 font-medium" : ""}`}>
                       {column.render ? column.render(item) : String(item[column.key] ?? "")}
                     </td>
                   ))}

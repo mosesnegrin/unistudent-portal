@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { cancelRsvp, reportContent, rsvpEvent } from "@/app/actions";
 import { getSessionContext } from "@/lib/auth";
-import { Field, PageHeader, Panel, PrimaryButton, StatusBadge, TextArea } from "@/components/ui";
+import { CategoryLabel } from "@/components/category-icon";
+import { Field, PageHeader, Panel, PrimaryButton, TextArea } from "@/components/ui";
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,7 +29,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       <PageHeader title={event.title} description={`${new Date(event.starts_at).toLocaleString()} · ${event.location}`} />
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <Panel>
-          <StatusBadge value={event.event_type} />
+          <CategoryLabel category={event.event_type} />
           <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted">{event.description}</p>
           <p className="mt-4 text-sm">Capacity: {event.capacity ?? "No limit"}</p>
           <p className="mt-1 text-sm">Price: {event.price_cents ? `EUR ${(event.price_cents / 100).toFixed(2)}` : "Free"}</p>

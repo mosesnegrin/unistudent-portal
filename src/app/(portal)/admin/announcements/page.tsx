@@ -1,11 +1,19 @@
 import { createAnnouncement } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
-import { Field, PageHeader, Panel, PrimaryButton, SelectField, TextArea } from "@/components/ui";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { Field, PageHeader, Panel, PrimaryButton, SelectField, StatusBadge, TextArea } from "@/components/ui";
 
 export default async function AdminAnnouncementsPage() {
-  const { supabase, roles } = await requireAdmin();
+  const { profile, roles } = await requireAdmin();
+  const supabase = createServiceRoleClient();
+  let announcementsQuery = supabase
+    .from("announcements")
+    .select("id,title,is_published,created_at,university_id,auto_delete_at,universities(name)")
+    .order("created_at", { ascending: false });
+  if (!roles.includes("super_admin")) announcementsQuery = announcementsQuery.eq("university_id", profile?.university_id);
   const [{ data: announcements }, { data: universities }] = await Promise.all([
-    supabase.from("announcements").select("id,title,is_published,created_at").order("created_at", { ascending: false }),
+    announcementsQuery,
     supabase.from("universities").select("id,name").order("name")
   ]);
 
@@ -43,12 +51,24 @@ export default async function AdminAnnouncementsPage() {
         <Panel>
           <h2 className="font-semibold">Announcements</h2>
           <div className="mt-4 space-y-3">
-            {announcements?.length ? announcements.map((item) => (
-              <div key={item.id} className="rounded-lg bg-surface p-3">
-                <p className="font-medium">{item.title}</p>
-                <p className="mt-1 text-sm text-muted">{item.is_published ? "Published" : "Draft"}</p>
+            {announcements?.length ? announcements.map((item) => {
+              const university = item.universities as { name?: string | null } | null;
+              const expired = Boolean(item.auto_delete_at && new Date(item.auto_delete_at) <= new Date());
+              return (
+              <div key={item.id} className="rounded-xl border border-line bg-surface p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="font-medium">{item.title}</p>
+                    <p className="mt-1 text-sm text-muted">{university?.name ?? "All universities"} · {new Date(item.created_at).toLocaleDateString()}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <StatusBadge value={item.is_published ? "approved" : "draft"} />
+                      {expired ? <StatusBadge value="expired" /> : null}
+                    </div>
+                  </div>
+                  <ConfirmDeleteButton table="announcements" id={item.id} label={item.title} />
+                </div>
               </div>
-            )) : <p className="text-sm text-muted">No announcements yet.</p>}
+            );}) : <p className="text-sm text-muted">No announcements yet.</p>}
           </div>
         </Panel>
       </div>

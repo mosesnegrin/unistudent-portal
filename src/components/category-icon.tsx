@@ -14,6 +14,7 @@ import {
   Trophy,
   Users
 } from "lucide-react";
+import { formatCategoryLabel } from "@/lib/format";
 
 const iconMap = {
   bureaucracy: FileText,
@@ -33,6 +34,8 @@ const iconMap = {
   study: BookOpen,
   official: Building2,
   administration: Building2,
+  student_event: Users,
+  university_event: Building2,
   external_partner: Handshake,
   external_partner_event: Handshake,
   marketplace: ShoppingBag
@@ -45,9 +48,9 @@ export function CategoryIcon({ category, className = "" }: { category?: string |
 
 export function CategoryLabel({ category }: { category?: string | null }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1 text-xs font-medium text-ink shadow-sm">
       <CategoryIcon category={category} />
-      {category ?? "general"}
+      {formatCategoryLabel(category)}
     </span>
   );
 }
