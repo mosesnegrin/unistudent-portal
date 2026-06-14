@@ -2,9 +2,10 @@
 
 ## 1. Prepare Supabase
 
-Create a Supabase project, then run the SQL migration from:
+Create a Supabase project, then run the SQL migrations in order:
 
-[supabase/migrations/001_initial_schema.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/001_initial_schema.sql)
+1. [supabase/migrations/001_initial_schema.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/001_initial_schema.sql)
+2. [supabase/migrations/002_auth_permissions_provider_info.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/002_auth_permissions_provider_info.sql)
 
 After the migration, add your first university in the `universities` table.
 
@@ -32,8 +33,11 @@ git push -u origin main
 5. Add environment variables:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
    - `NEXT_PUBLIC_APP_URL`
 6. Deploy.
+
+`SUPABASE_SERVICE_ROLE_KEY` is used only on the server for super admin user deletion from Supabase Auth. Never expose it in browser code.
 
 ## 4. Update Supabase Auth
 
@@ -57,7 +61,19 @@ If the domain is `lbs.ac.at`, the app accepts:
 
 The `admin.` domain only allows authentication. It does not grant admin permissions. Admin permissions must still be assigned in Supabase through `user_roles`.
 
-## 6. Test Production
+## 6. Roles and Listings
+
+Creation permissions are role-based:
+
+- Events: `event_creator`, `university_admin`, `super_admin`
+- Lessons: `tutor`, `university_admin`, `super_admin`
+- Notes/materials: `notes_seller`, `university_admin`, `super_admin`
+- Marketplace: `student`, `university_admin`, `super_admin`
+- Offers: `partner`, `university_admin`, `super_admin`
+
+Approved listings show who posted or offered them. Name and email are shown, and phone appears only when the user added it in `/profile`. Admin-created listings show `Official / Admin`.
+
+## 7. Test Production
 
 1. Visit your Vercel URL.
 2. Confirm it redirects to `/login`.

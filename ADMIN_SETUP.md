@@ -61,6 +61,21 @@ Use `/admin/users`:
 
 Use `university_admin` for admins who should manage only their university. Use `super_admin` only for people who can manage all universities.
 
+## Delete Users
+
+Only `super_admin` users can delete users in `/admin/users`. University admins do not see the delete button.
+
+Deletion uses `SUPABASE_SERVICE_ROLE_KEY` on the server to remove the Supabase Auth user. The key must be added to `.env.local` and Vercel environment variables, but it must never be imported into client components or exposed in browser code.
+
+A super admin cannot delete their own account from the dashboard. The delete button opens a confirmation modal before deletion.
+
+When a user is deleted:
+
+- Their Supabase Auth user is removed.
+- Their profile and user roles are removed.
+- Join records such as RSVPs and interests cascade.
+- Approved listings keep their content, but provider references become empty when needed.
+
 ## Add Content
 
 Use the admin dashboard:
@@ -73,3 +88,13 @@ Use the admin dashboard:
 - Approve student submissions in moderation pages
 
 Students will only see approved content for their own university, plus Austria-wide offers and global announcements/guide pages.
+
+Creation permissions:
+
+- Events: `event_creator`, `university_admin`, `super_admin`
+- Private lessons: `tutor`, `university_admin`, `super_admin`
+- Notes/materials: `notes_seller`, `university_admin`, `super_admin`
+- Marketplace items: `student`, `university_admin`, `super_admin`
+- Offers/partnerships: `partner`, `university_admin`, `super_admin`
+
+Approved listings show provider/contact information. Users can add an optional phone number in `/profile`; phone is shown publicly only when completed. Admin-created listings show `Official / Admin` with the admin email when available.

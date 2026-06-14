@@ -24,31 +24,30 @@ The app intentionally ships with no fake universities, users, events, offers, no
 4. In Supabase, open Project Settings, then API.
 5. Copy your Project URL into `NEXT_PUBLIC_SUPABASE_URL`.
 6. Copy your anon public key into `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-7. Keep `NEXT_PUBLIC_APP_URL=http://localhost:3000` for local development.
-8. Install packages:
+7. Copy your service role key into `SUPABASE_SERVICE_ROLE_KEY`.
+8. Keep `NEXT_PUBLIC_APP_URL=http://localhost:3000` for local development.
+9. Install packages:
 
 ```bash
 npm install
 ```
 
-9. Start the app:
+10. Start the app:
 
 ```bash
 npm run dev
 ```
 
-10. Open `http://localhost:3000`.
+11. Open `http://localhost:3000`.
 
 ## Run the Supabase Migration
 
 1. Open your Supabase project.
 2. Go to SQL Editor.
-3. Open [supabase/migrations/001_initial_schema.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/001_initial_schema.sql).
-4. Copy the full SQL file.
-5. Paste it into Supabase SQL Editor.
-6. Click Run.
+3. Run [supabase/migrations/001_initial_schema.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/001_initial_schema.sql) first if this is a new database.
+4. Run [supabase/migrations/002_auth_permissions_provider_info.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/002_auth_permissions_provider_info.sql) after the first migration.
 
-This creates all tables, roles, RLS policies, triggers, indexes, and storage buckets.
+These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, and role-based insert permissions.
 
 ## Create Your First University
 
@@ -134,6 +133,7 @@ Replace `YOUR-USERNAME` with your GitHub username.
 5. Add environment variables:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
    - `NEXT_PUBLIC_APP_URL` with your Vercel URL, for example `https://unistudent-portal.vercel.app`
 6. Click Deploy.
 
@@ -162,6 +162,7 @@ In Supabase:
 
 - `/admin`: statistics and shortcuts
 - `/admin/users`: user list, university filter, role assignment, role removal
+- Super admins can delete users from `/admin/users`; university admins cannot see or use deletion.
 - `/admin/events`: approve, reject, or flag events
 - `/admin/materials`: moderate notes and uploaded materials
 - `/admin/lessons`: moderate lesson listings
@@ -173,7 +174,19 @@ In Supabase:
 
 ## Adding Real Content
 
-Students can submit events, lessons, notes/materials, and marketplace posts. These start as `pending`. Admins approve them before they appear publicly.
+Content creation is role-based:
+
+- Events: `event_creator`, `university_admin`, `super_admin`
+- Private lessons: `tutor`, `university_admin`, `super_admin`
+- Notes/materials: `notes_seller`, `university_admin`, `super_admin`
+- Marketplace: `student`, `university_admin`, `super_admin`
+- Offers/partnerships: `partner`, `university_admin`, `super_admin`
+
+Normal user-created content starts as `pending`. Admins approve it before it appears publicly.
+
+Approved listings show provider information on the right side. The app shows name, email, and phone when the profile has a phone number. If an admin created the listing, it displays `Official / Admin` with the admin email when available.
+
+Users can add an optional phone number in `/profile`.
 
 Admins can add:
 
@@ -186,6 +199,8 @@ Admins can add:
 ## Important Security Notes
 
 - Do not expose your Supabase service role key in this app.
-- The app uses only the anon public key, protected by Supabase RLS.
+- `SUPABASE_SERVICE_ROLE_KEY` is required only for secure server-side user deletion from Supabase Auth.
+- Never import or use `SUPABASE_SERVICE_ROLE_KEY` in client components.
+- Browser-facing app code uses only the anon public key, protected by Supabase RLS.
 - Keep RLS enabled.
 - Add real content only. The project does not seed demo records.

@@ -20,6 +20,7 @@ export default async function ProfilePage() {
         <form action={updateProfile} className="space-y-4">
           <Field label="Full name" name="full_name" defaultValue={profile?.full_name} required />
           <Field label="Email" name="email" defaultValue={profile?.email} />
+          <Field label="Phone" name="phone" defaultValue={profile?.phone} placeholder="+43 ..." />
           <TextArea label="Short bio" name="bio" defaultValue={profile?.bio} />
           <Field label="Interests" name="interests" defaultValue={interestNames} placeholder="finance, law, design" />
           <PrimaryButton>Save profile</PrimaryButton>

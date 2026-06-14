@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { PageHeader, Panel, SelectField } from "@/components/ui";
 import { RoleManager } from "@/components/admin";
+import { DeleteUserButton } from "@/components/delete-user-button";
 
 export default async function AdminUsersPage({
   searchParams
@@ -8,7 +9,7 @@ export default async function AdminUsersPage({
   searchParams: Promise<{ university?: string }>;
 }) {
   const { university } = await searchParams;
-  const { supabase, profile, roles } = await requireAdmin();
+  const { supabase, profile, roles, user: currentUser } = await requireAdmin();
   const { data: universities } = await supabase.from("universities").select("id,name").order("name");
   const universityId = roles.includes("super_admin") ? university : profile?.university_id;
   let query = supabase.from("profiles").select("id,full_name,email,is_active,university_id,universities(name),user_roles(roles(name))").order("created_at", { ascending: false });
@@ -38,6 +39,7 @@ export default async function AdminUsersPage({
                 <th className="py-2 pr-3 font-medium">Email</th>
                 <th className="py-2 pr-3 font-medium">University</th>
                 <th className="py-2 pr-3 font-medium">Roles</th>
+                {roles.includes("super_admin") ? <th className="py-2 pr-3 font-medium">Delete</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -54,6 +56,15 @@ export default async function AdminUsersPage({
                     <td className="py-3 pr-3">{user.email}</td>
                     <td className="py-3 pr-3">{universityName}</td>
                     <td className="py-3 pr-3"><RoleManager userId={user.id} roles={assigned} /></td>
+                    {roles.includes("super_admin") ? (
+                      <td className="py-3 pr-3">
+                        <DeleteUserButton
+                          userId={user.id}
+                          userName={user.full_name || user.email}
+                          disabled={user.id === currentUser.id}
+                        />
+                      </td>
+                    ) : null}
                   </tr>
                 );
               })}

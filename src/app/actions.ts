@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSessionContext, requireAdmin } from "@/lib/auth";
+import { canCreate, noCreatePermissionMessage } from "@/lib/permissions";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import type { ModerationStatus, UserRole } from "@/lib/types";
 
 function value(formData: FormData, key: string) {
@@ -21,7 +23,8 @@ function numberOrNull(formData: FormData, key: string) {
 }
 
 export async function createEvent(formData: FormData) {
-  const { supabase, user, profile } = await getSessionContext();
+  const { supabase, user, profile, roles } = await getSessionContext();
+  if (!canCreate(roles, "events")) throw new Error(noCreatePermissionMessage("event"));
   await supabase.from("events").insert({
     title: value(formData, "title"),
     description: value(formData, "description"),
@@ -38,7 +41,8 @@ export async function createEvent(formData: FormData) {
 }
 
 export async function createLesson(formData: FormData) {
-  const { supabase, user, profile } = await getSessionContext();
+  const { supabase, user, profile, roles } = await getSessionContext();
+  if (!canCreate(roles, "lessons")) throw new Error(noCreatePermissionMessage("lesson"));
   await supabase.from("lessons").insert({
     course_name: value(formData, "course_name"),
     tutor_name: value(formData, "tutor_name"),
@@ -55,7 +59,8 @@ export async function createLesson(formData: FormData) {
 }
 
 export async function createMaterial(formData: FormData) {
-  const { supabase, user, profile } = await getSessionContext();
+  const { supabase, user, profile, roles } = await getSessionContext();
+  if (!canCreate(roles, "materials")) throw new Error(noCreatePermissionMessage("material"));
   const file = formData.get("file");
   let filePath: string | null = null;
 
@@ -82,7 +87,8 @@ export async function createMaterial(formData: FormData) {
 }
 
 export async function createMarketplaceItem(formData: FormData) {
-  const { supabase, user, profile } = await getSessionContext();
+  const { supabase, user, profile, roles } = await getSessionContext();
+  if (!canCreate(roles, "marketplace")) throw new Error(noCreatePermissionMessage("marketplace item"));
   await supabase.from("marketplace_items").insert({
     title: value(formData, "title"),
     description: value(formData, "description"),
@@ -101,6 +107,7 @@ export async function updateProfile(formData: FormData) {
     .from("profiles")
     .update({
       full_name: value(formData, "full_name"),
+      phone: nullable(formData, "phone"),
       bio: nullable(formData, "bio")
     })
     .eq("id", user.id);
@@ -193,8 +200,10 @@ export async function moderateContent(formData: FormData) {
 }
 
 export async function createOffer(formData: FormData) {
-  const { supabase, profile, roles } = await requireAdmin();
+  const { supabase, profile, roles } = await getSessionContext();
+  if (!canCreate(roles, "offers")) throw new Error(noCreatePermissionMessage("offer"));
   const isSuperAdmin = roles.includes("super_admin");
+  const isAustriaWide = isSuperAdmin && value(formData, "is_austria_wide") === "true";
   await supabase.from("offers").insert({
     title: value(formData, "title"),
     description: value(formData, "description"),
@@ -203,7 +212,8 @@ export async function createOffer(formData: FormData) {
     expires_at: nullable(formData, "expires_at"),
     link: nullable(formData, "link"),
     university_id: isSuperAdmin ? nullable(formData, "university_id") : profile?.university_id,
-    is_austria_wide: value(formData, "is_austria_wide") === "true"
+    is_austria_wide: isAustriaWide,
+    created_by: (await supabase.auth.getUser()).data.user?.id
   });
   revalidatePath("/admin/offers");
   revalidatePath("/offers");
@@ -270,6 +280,35 @@ export async function removeRole(formData: FormData) {
     await supabase.from("user_roles").delete().eq("user_id", value(formData, "user_id")).eq("role_id", role.id);
   }
   revalidatePath("/admin/users");
+}
+
+export async function deleteUser(userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const { user, roles } = await requireAdmin();
+    if (!roles.includes("super_admin")) {
+      return { ok: false, error: "Only super admins can delete users." };
+    }
+
+    if (user.id === userId) {
+      return { ok: false, error: "You cannot delete your own account from the admin dashboard." };
+    }
+
+    const serviceClient = createServiceRoleClient();
+    const { error } = await serviceClient.auth.admin.deleteUser(userId);
+
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+
+    revalidatePath("/admin/users");
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Unable to delete user."
+    };
+  }
 }
 
 export async function goDashboard() {
