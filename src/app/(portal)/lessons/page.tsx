@@ -9,7 +9,7 @@ import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, TextA
 
 export default async function LessonsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab: requestedTab } = await searchParams;
-  const { supabase, profile, roles, user } = await getSessionContext();
+  const { supabase, effectiveUniversityId, roles, user } = await getSessionContext();
   const canCreateLesson = canCreate(roles, "lessons");
   const activeTab = requestedTab === "requests" || (requestedTab === "create" && canCreateLesson) ? requestedTab : "all";
   const nav = [
@@ -29,7 +29,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
           .from("lessons")
           .select(lessonSelect)
           .eq("moderation_status", "approved")
-          .eq("university_id", profile?.university_id)
+          .eq("university_id", effectiveUniversityId)
           .or(`auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
           .order("created_at", { ascending: false })
       : { data: [] };

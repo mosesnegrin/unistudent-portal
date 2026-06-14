@@ -21,6 +21,8 @@ Example:
 
 Admin-style emails do not automatically get admin permissions. They are only allowed to sign up and log in. You still assign admin permissions manually through `user_roles`.
 
+UniStudents company emails use a special rule. Any authenticated user whose email domain starts with `unistudents`, such as `name@unistudents.com`, `name@unistudents.at`, or `name@unistudents.eu`, automatically receives the `company` role. Company users have the same platform-wide permissions as `super_admin` and do not depend on one university.
+
 ## Email and Password Auth
 
 The app uses normal Supabase email + password authentication.
@@ -59,11 +61,11 @@ Use `/admin/users`:
 2. Choose `university_admin` or another role.
 3. Click Add role.
 
-Use `university_admin` for admins who should manage only their university. Use `super_admin` only for people who can manage all universities.
+Use `university_admin` for admins who should manage only their university. Use `super_admin` or `company` only for people who can manage all universities.
 
 `/admin/users` visibility:
 
-- Super admin: sees all users from all universities.
+- Super admin/company: sees all users from all universities.
 - University admin: sees only users from their own university.
 
 The user table shows full name, email, university, phone, roles, created date, and actions.
@@ -72,7 +74,7 @@ The user table is loaded with separate server-side queries for profiles, user ro
 
 ## Delete Users
 
-Only `super_admin` users can delete users in `/admin/users`. University admins do not see the delete button.
+Only platform admins, meaning `super_admin` and `company`, can delete users in `/admin/users`. University admins do not see the delete button.
 
 Deletion uses `SUPABASE_SERVICE_ROLE_KEY` on the server to remove the Supabase Auth user. The key must be added to `.env.local` and Vercel environment variables, but it must never be imported into client components or exposed in browser code.
 
@@ -90,6 +92,8 @@ When a user is deleted:
 Use the admin dashboard:
 
 - Add universities in `/admin/universities`
+- Deactivate/reactivate universities in `/admin/universities`
+- Configure each university's Community button in `/admin/universities`
 - Manage guide material in `/admin/guide`
 - Add offers in `/admin/offers`
 - Add and delete announcements in `/admin/announcements`
@@ -119,7 +123,11 @@ Admin moderation pages are table-based:
 - Rejected items stay visible with a red rejected badge.
 - Delete is available on pending, approved, and rejected items after confirmation.
 
-Super admins see submitted content from every university. University admins see submitted content only from their own university.
+Super admins and company users see submitted content from every university. University admins see submitted content only from their own university. Company users can use the header university switcher to view one university or All Universities without changing their account profile.
+
+Browser and header titles follow the current context: `UniStudents - [University Name] Portal`, `UniStudents - [University Name] Admin Dashboard`, or `UniStudents - Admin Dashboard`. The favicon matches the header logo.
+
+If a university is deactivated, normal users from that university are blocked from logging in or continuing an existing session. They see: `This university portal is currently deactivated. Please contact your university administrator or UniStudents support.` Platform admins are not blocked, so they can reactivate universities.
 
 Official announcements also have a confirmation-based Delete button in `/admin/announcements`. Super admins can delete all announcements. University admins can delete only announcements for their own university.
 
@@ -174,11 +182,11 @@ Forms and important actions show confirmation or error messages, including profi
 
 ## App Settings
 
-Admins can access `/admin/settings` to edit app settings such as `community_button_label` and `community_button_url`.
+Community button settings are managed per university in `/admin/universities` using `community_button_label` and `community_button_url`.
 
-The internal Community tab has been removed. The dashboard external button appears for normal users only when `community_button_url` has a value.
+The internal Community tab has been removed. The dashboard external button appears for normal users only when their own university has a `community_button_url` value. A URL for one university does not affect another university.
 
-The app footer reads: `Made by Moysis Negrin. 2026`.
+The app footer reads: `Made by Moysis Negrin. © 2026 · Contact`. Contact opens `mailto:moysis.negrin@lbs.ac.at`.
 
 ## Auto-Delete Deadlines
 
@@ -191,5 +199,5 @@ If content does not show:
 1. Confirm the latest migration was run.
 2. Confirm the content has `moderation_status = approved`.
 3. Confirm the user profile has the correct `university_id`.
-4. Confirm the admin has `super_admin` or `university_admin` in `user_roles`.
+4. Confirm the admin has `super_admin`, `company`, or `university_admin` in `user_roles`.
 5. Confirm `SUPABASE_SERVICE_ROLE_KEY` is set for admin management pages.

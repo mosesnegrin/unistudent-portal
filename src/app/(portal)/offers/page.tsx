@@ -8,7 +8,7 @@ import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, TextA
 
 export default async function OffersPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab: requestedTab } = await searchParams;
-  const { supabase, profile, roles, user } = await getSessionContext();
+  const { supabase, effectiveUniversityId, roles, user } = await getSessionContext();
   const canCreateOffer = canCreate(roles, "offers");
   const activeTab = requestedTab === "mine" || (requestedTab === "create" && canCreateOffer) ? requestedTab : "all";
   const nav = [
@@ -24,7 +24,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
   } else {
     query = query
       .eq("moderation_status", "approved")
-      .or(`university_id.eq.${profile?.university_id},is_austria_wide.eq.true`)
+      .or(`university_id.eq.${effectiveUniversityId},is_austria_wide.eq.true`)
       .or(`auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`);
   }
   const { data: offers } = await query;

@@ -17,13 +17,14 @@ function university(item: Record<string, unknown>) {
 }
 
 export default async function AdminEventsPage() {
-  const { profile, roles } = await requireAdmin();
+  const { profile, isPlatformAdmin, effectiveUniversityId } = await requireAdmin();
   const adminClient = createServiceRoleClient();
   let query = adminClient
     .from("events")
     .select("id,title,description,starts_at,location,event_type,price_cents,capacity,moderation_status,created_by,university_id,auto_delete_at,image_url")
     .order("created_at", { ascending: false });
-  if (!roles.includes("super_admin")) query = query.eq("university_id", profile?.university_id);
+  const universityFilter = isPlatformAdmin ? effectiveUniversityId : profile?.university_id;
+  if (universityFilter) query = query.eq("university_id", universityFilter);
   const { data, error } = await query;
   const events = (data ?? []) as Array<Record<string, unknown>>;
   const providerIds = Array.from(new Set(events.map((event) => event.created_by).filter(Boolean).map(String)));

@@ -13,7 +13,8 @@ export const roleOptions: UserRole[] = [
   "event_creator",
   "partner",
   "university_admin",
-  "super_admin"
+  "super_admin",
+  "company"
 ];
 
 export function ModerationTable({

@@ -1,22 +1,44 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { getSessionContext } from "@/lib/auth";
 import { getAdminNavigation, studentNavigation } from "@/lib/navigation";
 
-export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const { supabase, profile, isAdmin, roles } = await getSessionContext();
-  const isSuperAdmin = roles.includes("super_admin");
-  const { data: university } = profile?.university_id
-    ? await supabase.from("universities").select("name").eq("id", profile.university_id).maybeSingle()
+function platformTitle({ universityName, isAdmin, isPlatformAdmin }: { universityName?: string | null; isAdmin: boolean; isPlatformAdmin: boolean }) {
+  if (isPlatformAdmin && !universityName) return "UniStudents - Admin Dashboard";
+  if (isAdmin) return `UniStudents - ${universityName ?? "Admin"} Admin Dashboard`;
+  return `UniStudents - ${universityName ?? "University"} Portal`;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { supabase, profile, isAdmin, isPlatformAdmin, effectiveUniversityId } = await getSessionContext();
+  const universityId = effectiveUniversityId ?? profile?.university_id;
+  const { data: university } = universityId
+    ? await supabase.from("universities").select("name").eq("id", universityId).maybeSingle()
     : { data: null };
-  const title = isSuperAdmin
-    ? "UniStudents - Admin Dashboard"
-    : `UniStudents - ${university?.name ?? "University"} Portal`;
+
+  return {
+    title: platformTitle({ universityName: university?.name, isAdmin, isPlatformAdmin })
+  };
+}
+
+export default async function PortalLayout({ children }: { children: React.ReactNode }) {
+  const { supabase, profile, isAdmin, roles, isCompany, isPlatformAdmin, effectiveUniversityId } = await getSessionContext();
+  const universityId = effectiveUniversityId ?? profile?.university_id;
+  const { data: university } = universityId
+    ? await supabase.from("universities").select("name").eq("id", universityId).maybeSingle()
+    : { data: null };
+  const { data: companyUniversities } = isCompany
+    ? await supabase.from("universities").select("id,name").order("name")
+    : { data: [] };
+  const title = platformTitle({ universityName: university?.name, isAdmin, isPlatformAdmin });
 
   return (
     <AppShell
       title={title}
-      navigation={isAdmin ? getAdminNavigation(isSuperAdmin) : studentNavigation}
+      navigation={isAdmin ? getAdminNavigation(isPlatformAdmin) : studentNavigation}
       userName={profile?.full_name}
+      companyUniversities={isCompany ? companyUniversities ?? [] : undefined}
+      selectedUniversityId={effectiveUniversityId}
     >
       {children}
     </AppShell>

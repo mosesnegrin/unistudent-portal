@@ -11,10 +11,10 @@ export default async function AdminUsersPage({
   searchParams: Promise<{ university?: string }>;
 }) {
   const { university } = await searchParams;
-  const { profile, roles, user: currentUser } = await requireAdmin();
+  const { profile, roles, user: currentUser, isPlatformAdmin, effectiveUniversityId } = await requireAdmin();
   const adminClient = createServiceRoleClient();
   const { data: universities } = await adminClient.from("universities").select("id,name").order("name");
-  const universityId = roles.includes("super_admin") ? university : profile?.university_id;
+  const universityId = isPlatformAdmin ? university || effectiveUniversityId || undefined : profile?.university_id;
   let query = adminClient
     .from("profiles")
     .select("id,full_name,email,phone,is_active,university_id,created_at,universities(name)")
@@ -42,7 +42,7 @@ export default async function AdminUsersPage({
   return (
     <>
       <PageHeader title="Users" description="View users, filter by university, and assign or remove roles." />
-      {roles.includes("super_admin") ? (
+      {isPlatformAdmin ? (
         <Panel className="mb-4">
           <form>
             <SelectField label="University filter" name="university" defaultValue={university ?? ""}>
@@ -69,7 +69,7 @@ export default async function AdminUsersPage({
                 <th className="py-2 pr-3 font-medium">Phone</th>
                 <th className="py-2 pr-3 font-medium">Roles</th>
                 <th className="py-2 pr-3 font-medium">Created</th>
-                {roles.includes("super_admin") ? <th className="py-2 pr-3 font-medium">Delete</th> : null}
+                {isPlatformAdmin ? <th className="py-2 pr-3 font-medium">Delete</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -85,7 +85,7 @@ export default async function AdminUsersPage({
                     <td className="py-3 pr-3">{user.phone ?? ""}</td>
                     <td className="py-3 pr-3"><RoleManager userId={user.id} roles={assigned} /></td>
                     <td className="py-3 pr-3">{formatDate(user.created_at)}</td>
-                    {roles.includes("super_admin") ? (
+                    {isPlatformAdmin ? (
                       <td className="py-3 pr-3">
                         <DeleteUserButton
                           userId={user.id}

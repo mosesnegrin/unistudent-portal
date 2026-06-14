@@ -3,8 +3,8 @@ import { firstName } from "@/lib/format";
 import { PageHeader, Panel, SecondaryLink } from "@/components/ui";
 
 export default async function AdminPage() {
-  const { supabase, profile, roles } = await requireAdmin();
-  const universityFilter = roles.includes("super_admin") ? undefined : profile?.university_id;
+  const { supabase, profile, isPlatformAdmin, effectiveUniversityId } = await requireAdmin();
+  const universityFilter = isPlatformAdmin ? effectiveUniversityId ?? undefined : profile?.university_id;
 
   const scoped = (table: string) => {
     const query = supabase.from(table).select("id", { count: "exact", head: true });

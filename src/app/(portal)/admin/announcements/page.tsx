@@ -7,13 +7,14 @@ import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { Field, PageHeader, Panel, PrimaryButton, SelectField, StatusBadge, TextArea } from "@/components/ui";
 
 export default async function AdminAnnouncementsPage() {
-  const { profile, roles } = await requireAdmin();
+  const { profile, isPlatformAdmin, effectiveUniversityId } = await requireAdmin();
   const supabase = createServiceRoleClient();
   let announcementsQuery = supabase
     .from("announcements")
     .select("id,title,is_published,created_at,university_id,auto_delete_at,universities(name)")
     .order("created_at", { ascending: false });
-  if (!roles.includes("super_admin")) announcementsQuery = announcementsQuery.eq("university_id", profile?.university_id);
+  const universityFilter = isPlatformAdmin ? effectiveUniversityId : profile?.university_id;
+  if (universityFilter) announcementsQuery = announcementsQuery.eq("university_id", universityFilter);
   const [{ data: announcements }, { data: universities }] = await Promise.all([
     announcementsQuery,
     supabase.from("universities").select("id,name").order("name")
@@ -41,7 +42,7 @@ export default async function AdminAnnouncementsPage() {
               <option value="true">Yes</option>
               <option value="false">No</option>
             </SelectField>
-            {roles.includes("super_admin") ? (
+            {isPlatformAdmin ? (
               <SelectField label="University" name="university_id">
                 <option value="">All universities</option>
                 {universities?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}

@@ -19,10 +19,12 @@ function creator(item: Record<string, unknown>) {
 function GuideForm({
   universities,
   roles,
+  isPlatformAdmin,
   item
 }: {
   universities: Array<{ id: string; name: string }>;
   roles: string[];
+  isPlatformAdmin: boolean;
   item?: Record<string, unknown>;
 }) {
   const action = item ? updateGuidePage : createGuidePage;
@@ -44,7 +46,7 @@ function GuideForm({
         <option value="true">Approved / published</option>
         <option value="false">Rejected / draft</option>
       </SelectField>
-      {roles.includes("super_admin") ? (
+      {isPlatformAdmin ? (
         <SelectField label="Visibility" name="university_id" defaultValue={String(item?.university_id ?? "")}>
           <option value="">Global / Austria-wide</option>
           {universities.map((university) => <option key={university.id} value={university.id}>{university.name}</option>)}
@@ -65,14 +67,15 @@ function GuideForm({
 }
 
 export default async function AdminGuidePage() {
-  const { profile, roles } = await requireAdmin();
+  const { profile, roles, isPlatformAdmin, effectiveUniversityId } = await requireAdmin();
   const { createServiceRoleClient } = await import("@/lib/supabase/admin");
   const adminClient = createServiceRoleClient();
   let query = adminClient
     .from("guide_pages")
     .select("id,title,category,body,is_published,university_id,auto_delete_at,created_at,created_by,profiles(full_name,email),universities(name)")
     .order("created_at", { ascending: false });
-  if (!roles.includes("super_admin")) query = query.eq("university_id", profile?.university_id);
+  const universityFilter = isPlatformAdmin ? effectiveUniversityId : profile?.university_id;
+  if (universityFilter) query = query.eq("university_id", universityFilter);
   const [{ data: items }, { data: universities }] = await Promise.all([
     query,
     adminClient.from("universities").select("id,name").order("name")
@@ -85,7 +88,7 @@ export default async function AdminGuidePage() {
         <Panel>
           <h2 className="font-semibold">Create guide material</h2>
           <div className="mt-4">
-            <GuideForm universities={universities ?? []} roles={roles} />
+            <GuideForm universities={universities ?? []} roles={roles} isPlatformAdmin={isPlatformAdmin} />
           </div>
         </Panel>
         <Panel>
@@ -112,7 +115,7 @@ export default async function AdminGuidePage() {
                   <details className="mt-4">
                     <summary className="cursor-pointer text-sm font-medium">Edit</summary>
                     <div className="mt-4">
-                      <GuideForm universities={universities ?? []} roles={roles} item={record} />
+                      <GuideForm universities={universities ?? []} roles={roles} isPlatformAdmin={isPlatformAdmin} item={record} />
                     </div>
                   </details>
                 </div>

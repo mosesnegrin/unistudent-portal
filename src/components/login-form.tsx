@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ensureCompanyRole } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
-import { allowedDomainMessage, isEmailAllowedForUniversity } from "@/lib/email-domain";
+import { allowedDomainMessage, isCompanyEmail, isEmailAllowedForUniversity } from "@/lib/email-domain";
 import type { University } from "@/lib/types";
 import { PrimaryButton } from "@/components/ui";
 
@@ -49,7 +50,7 @@ export function LoginForm({ universities }: { universities: University[] }) {
       })
       .filter(Boolean);
 
-    router.replace(roles.some((role) => role === "super_admin" || role === "university_admin") ? "/admin" : "/dashboard");
+    router.replace(roles.some((role) => role === "super_admin" || role === "university_admin" || role === "company") ? "/admin" : "/dashboard");
     router.refresh();
   }
 
@@ -64,6 +65,11 @@ export function LoginForm({ universities }: { universities: University[] }) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const companyEmail = isCompanyEmail(normalizedEmail);
+    if (!companyEmail && !selectedUniversity.is_active) {
+      setError("This university portal is currently deactivated. Please contact your university administrator or UniStudents support.");
+      return;
+    }
     if (!isEmailAllowedForUniversity(normalizedEmail, selectedUniversity)) {
       setError(allowedDomainMessage(selectedUniversity));
       return;
@@ -90,6 +96,7 @@ export function LoginForm({ universities }: { universities: University[] }) {
         return;
       }
 
+      await ensureCompanyRole();
       await redirectByRole();
       return;
     }
@@ -128,6 +135,7 @@ export function LoginForm({ universities }: { universities: University[] }) {
           .eq("id", user.id);
       }
 
+      await ensureCompanyRole();
       setIsLoading(false);
       await redirectByRole();
       return;
@@ -175,7 +183,7 @@ export function LoginForm({ universities }: { universities: University[] }) {
           <option value="">Select university</option>
           {universities.map((university) => (
             <option key={university.id} value={university.id}>
-              {university.name}
+              {university.name}{university.is_active ? "" : " (inactive)"}
             </option>
           ))}
         </select>

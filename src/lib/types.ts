@@ -5,7 +5,8 @@ export type UserRole =
   | "event_creator"
   | "partner"
   | "university_admin"
-  | "super_admin";
+  | "super_admin"
+  | "company";
 
 export type ModerationStatus = "pending" | "approved" | "rejected" | "flagged";
 
@@ -14,6 +15,8 @@ export type University = {
   name: string;
   allowed_email_domain: string;
   is_active: boolean;
+  community_button_label?: string | null;
+  community_button_url?: string | null;
 };
 
 export type Profile = {

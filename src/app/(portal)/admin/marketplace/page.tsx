@@ -16,13 +16,14 @@ function university(item: Record<string, unknown>) {
 }
 
 export default async function AdminMarketplacePage() {
-  const { profile, roles } = await requireAdmin();
+  const { profile, isPlatformAdmin, effectiveUniversityId } = await requireAdmin();
   const adminClient = createServiceRoleClient();
   let query = adminClient
     .from("marketplace_items")
     .select("id,title,description,price_cents,category,moderation_status,auto_delete_at,profiles(full_name,email),universities(name)")
     .order("created_at", { ascending: false });
-  if (!roles.includes("super_admin")) query = query.eq("university_id", profile?.university_id);
+  const universityFilter = isPlatformAdmin ? effectiveUniversityId : profile?.university_id;
+  if (universityFilter) query = query.eq("university_id", universityFilter);
   const { data, error } = await query;
   return (
     <>

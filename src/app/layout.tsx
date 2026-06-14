@@ -2,8 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "UniStudent Portal",
-  description: "A private student platform for university communities."
+  title: "UniStudents Portal",
+  description: "A private student platform for university communities.",
+  icons: {
+    icon: "/icon.svg"
+  }
 };
 
 export const viewport: Viewport = {

@@ -18,13 +18,14 @@ function scope(item: Record<string, unknown>) {
 }
 
 export default async function AdminOffersPage() {
-  const { supabase, profile, roles } = await requireAdmin();
+  const { supabase, profile, roles, isPlatformAdmin, effectiveUniversityId } = await requireAdmin();
   const adminClient = createServiceRoleClient();
   let offersQuery = adminClient
     .from("offers")
     .select("id,title,description,partner_name,discount_details,expires_at,is_austria_wide,moderation_status,auto_delete_at,profiles(full_name,email),universities(name)")
     .order("created_at", { ascending: false });
-  if (!roles.includes("super_admin")) offersQuery = offersQuery.eq("university_id", profile?.university_id);
+  const universityFilter = isPlatformAdmin ? effectiveUniversityId : profile?.university_id;
+  if (universityFilter) offersQuery = offersQuery.eq("university_id", universityFilter);
   const [{ data: offers }, { data: universities }] = await Promise.all([
     offersQuery,
     supabase.from("universities").select("id,name").order("name")
@@ -56,7 +57,7 @@ export default async function AdminOffersPage() {
               <option value="false">No</option>
               <option value="true">Yes</option>
             </SelectField>
-            {roles.includes("super_admin") ? (
+            {isPlatformAdmin ? (
               <SelectField label="University" name="university_id">
                 <option value="">No specific university</option>
                 {universities?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}

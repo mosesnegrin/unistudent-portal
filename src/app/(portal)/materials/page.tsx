@@ -9,7 +9,7 @@ import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, TextA
 
 export default async function MaterialsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab: requestedTab } = await searchParams;
-  const { supabase, profile, roles, user } = await getSessionContext();
+  const { supabase, effectiveUniversityId, roles, user } = await getSessionContext();
   const canCreateMaterial = canCreate(roles, "materials");
   const activeTab = requestedTab === "requests" || (requestedTab === "create" && canCreateMaterial) ? requestedTab : "all";
   const nav = [
@@ -21,7 +21,7 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
   const { data } = activeTab === "requests"
     ? await supabase.from("material_requests").select(`status,message,materials(${materialSelect})`).eq("requester_id", user.id).order("created_at", { ascending: false })
     : activeTab === "all"
-      ? await supabase.from("materials").select(materialSelect).eq("moderation_status", "approved").eq("university_id", profile?.university_id).order("created_at", { ascending: false })
+      ? await supabase.from("materials").select(materialSelect).eq("moderation_status", "approved").eq("university_id", effectiveUniversityId).order("created_at", { ascending: false })
         .or(`auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
       : { data: [] };
   const materials = (activeTab === "requests"

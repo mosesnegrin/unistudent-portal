@@ -12,7 +12,7 @@ import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, TextA
 
 export default async function EventsPage({ searchParams }: { searchParams: Promise<{ tab?: string; category?: string }> }) {
   const { tab: requestedTab, category: activeCategory } = await searchParams;
-  const { supabase, profile, roles, user } = await getSessionContext();
+  const { supabase, effectiveUniversityId, roles, user } = await getSessionContext();
   const canCreateEvent = canCreate(roles, "events");
   const activeTab = requestedTab === "registered" || (requestedTab === "create" && canCreateEvent) ? requestedTab : "all";
   const nav = [
@@ -38,7 +38,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
           .from("events")
           .select(eventSelect)
           .eq("moderation_status", "approved")
-          .eq("university_id", profile?.university_id)
+          .eq("university_id", effectiveUniversityId)
           .or(`auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
           .gte("starts_at", futureFrom)
           .order("starts_at")

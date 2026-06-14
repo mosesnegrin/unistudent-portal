@@ -15,13 +15,14 @@ function university(item: Record<string, unknown>) {
 }
 
 export default async function AdminLessonsPage() {
-  const { profile, roles } = await requireAdmin();
+  const { profile, isPlatformAdmin, effectiveUniversityId } = await requireAdmin();
   const adminClient = createServiceRoleClient();
   let query = adminClient
     .from("lessons")
     .select("id,course_name,description,tutor_name,price_cents,session_type,moderation_status,auto_delete_at,profiles(full_name,email),universities(name)")
     .order("created_at", { ascending: false });
-  if (!roles.includes("super_admin")) query = query.eq("university_id", profile?.university_id);
+  const universityFilter = isPlatformAdmin ? effectiveUniversityId : profile?.university_id;
+  if (universityFilter) query = query.eq("university_id", universityFilter);
   const { data, error } = await query;
   return (
     <>

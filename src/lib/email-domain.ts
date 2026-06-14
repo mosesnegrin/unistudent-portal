@@ -7,9 +7,14 @@ export function getEmailDomain(email: string) {
 }
 
 export function isEmailAllowedForUniversity(email: string, university: Pick<University, "allowed_email_domain">) {
+  if (isCompanyEmail(email)) return true;
   const emailDomain = getEmailDomain(email);
   const universityDomain = university.allowed_email_domain.trim().toLowerCase();
   return emailDomain === universityDomain || emailDomain === `admin.${universityDomain}`;
+}
+
+export function isCompanyEmail(email: string) {
+  return getEmailDomain(email).startsWith("unistudents");
 }
 
 export function allowedDomainMessage(university: Pick<University, "allowed_email_domain">) {

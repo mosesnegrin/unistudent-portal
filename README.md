@@ -9,13 +9,13 @@ The app intentionally ships with no fake universities, users, events, offers, no
 - University-first email and password authentication
 - Email domain validation per university
 - Private app access only after login
-- Roles: student, tutor, notes seller, event creator, partner, university admin, super admin
+- Roles: student, tutor, notes seller, event creator, partner, university admin, super admin, company
 - Admin dashboard with user, role, moderation, reports, offers, announcements, guide, and university management
 - Student dashboard with events, announcements, lessons, notes, marketplace, offers, guide, and community
 - Pretty category labels and category filter bars on pages that have categories
 - Pending/approved/rejected/flagged moderation flow
 - Supabase Storage buckets for materials and marketplace assets
-- Row Level Security policies for student, university admin, and super admin access
+- Row Level Security policies for student, university admin, super admin, and company access
 
 ## Local Setup
 
@@ -52,8 +52,9 @@ npm run dev
 7. Run [supabase/migrations/005_events_uploads_terms_footer.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/005_events_uploads_terms_footer.sql) after the fourth migration.
 8. Run [supabase/migrations/006_admin_guide_delete_autodelete_community_icons.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/006_admin_guide_delete_autodelete_community_icons.sql) after the fifth migration.
 9. Run [supabase/migrations/007_ui_format_profile_event_images.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/007_ui_format_profile_event_images.sql) after the sixth migration.
+10. Run [supabase/migrations/008_company_role_university_settings_titles.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/008_company_role_university_settings_titles.sql) after the seventh migration.
 
-These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, event images, and role-based insert permissions.
+These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, event images, company-role access, university-specific community settings, and role-based insert permissions.
 
 ## Create Your First University
 
@@ -76,6 +77,8 @@ Example:
 - Admin-style email accepted: `name@admin.lbs.ac.at`
 
 Admin-style emails do not automatically receive admin permissions. They only pass the email-domain check. Admin roles still need to be assigned manually through `user_roles` or `/admin/users`.
+
+Internal UniStudents users can sign up or log in with an email whose domain starts with `unistudents`, such as `name@unistudents.com`, `name@unistudents.at`, or `name@unistudents.eu`. These emails bypass university-domain validation and automatically receive the `company` role after authentication. The `company` role has the same platform-wide access as `super_admin`.
 
 ## Supabase Email Confirmation
 
@@ -168,7 +171,7 @@ In Supabase:
 
 - `/admin`: statistics and shortcuts
 - `/admin/users`: user list, university filter, role assignment, role removal
-- Super admins can delete users from `/admin/users`; university admins cannot see or use deletion.
+- Platform admins (`super_admin` and `company`) can delete users from `/admin/users`; university admins cannot see or use deletion.
 - `/admin/events`: approve, reject, or flag events
 - `/admin/materials`: moderate notes and uploaded materials
 - `/admin/lessons`: moderate lesson listings
@@ -177,10 +180,14 @@ In Supabase:
 - `/admin/announcements`: publish and delete official announcements
 - `/admin/guide`: manage guide material, uploads, visibility, and auto-delete deadlines
 - `/admin/reports`: review reports and flagged content
-- `/admin/universities`: add universities and guide pages
-- `/admin/settings`: app settings, including the dashboard external Community button
+- `/admin/universities`: add universities, deactivate/reactivate universities, and manage each university's Community button
+- `/admin/settings`: points to the admin area where specific settings are managed
 
-Super admins see users and submitted content across all universities. University admins see only users and submitted content for their own university.
+Super admins and company users see users and submitted content across all universities. University admins see only users and submitted content for their own university. Company users also get a header university switcher. Selecting a university changes the current viewing/filter context; choosing All Universities returns to the global admin view.
+
+The browser tab title and header title use the current context: `UniStudents - [University Name] Portal`, `UniStudents - [University Name] Admin Dashboard`, or `UniStudents - Admin Dashboard` for global platform admins. The favicon matches the header graduation-cap logo.
+
+Universities can be deactivated or reactivated in `/admin/universities` by platform admins. Deactivated universities cannot be used by normal users for new signup/login, and existing non-platform sessions for that university are blocked with a clear deactivation message. Platform admins can still access admin controls to reactivate the university.
 
 Admin moderation pages use table views. Pending rows show Approve and Reject actions. Approved rows remain visible with a green approved badge. Rejected rows remain visible with a red rejected badge. Delete is available for pending, approved, and rejected content with a confirmation dialog.
 
@@ -248,9 +255,9 @@ Events support optional image upload through the `event-assets` Supabase Storage
 
 Forms and important actions show inline confirmation or error messages, including create/upload, profile save, password change, approve/reject, delete, RSVP, and cancel RSVP.
 
-The internal Community tab has been removed. The dashboard can show a customizable external-link button controlled in `/admin/settings` with `community_button_label` and `community_button_url`. If the URL is empty, normal users do not see the button.
+The internal Community tab has been removed. The dashboard can show a customizable external-link button controlled per university in `/admin/universities` with `community_button_label` and `community_button_url`. If a user's university has no URL, normal users do not see the button. One university's URL does not affect another university.
 
-All student and admin pages include the footer: `Made by Moysis Negrin. 2026`.
+All student and admin pages include the footer: `Made by Moysis Negrin. © 2026 · Contact`. Contact opens `mailto:moysis.negrin@lbs.ac.at`.
 
 Admin-managed content supports an optional `auto_delete_at` deadline. Expired content is hidden from public/user pages while remaining manageable in admin views.
 

@@ -9,13 +9,13 @@ import { Field, PageHeader, Panel, PrimaryButton, TextArea } from "@/components/
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, user, profile } = await getSessionContext();
+  const { supabase, user, effectiveUniversityId } = await getSessionContext();
   const { data: event } = await supabase
     .from("events")
     .select("*")
     .eq("id", id)
     .eq("moderation_status", "approved")
-    .eq("university_id", profile?.university_id)
+    .eq("university_id", effectiveUniversityId)
     .maybeSingle();
 
   if (!event) notFound();

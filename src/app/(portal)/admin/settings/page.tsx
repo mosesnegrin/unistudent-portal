@@ -1,33 +1,19 @@
-import { updateAppSetting } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
-import { ActionForm } from "@/components/action-form";
-import { Field, PageHeader, Panel, PrimaryButton } from "@/components/ui";
+import { PageHeader, Panel, SecondaryLink } from "@/components/ui";
 
 export default async function AdminSettingsPage() {
-  const { supabase } = await requireAdmin();
-  const { data: settings } = await supabase
-    .from("app_settings")
-    .select("key,value,description")
-    .in("key", ["community_button_label", "community_button_url"]);
-  const map = new Map((settings ?? []).map((setting) => [setting.key, setting]));
+  await requireAdmin();
 
   return (
     <>
-      <PageHeader title="Settings" description="Configure app-level settings such as the dashboard external Community button." />
+      <PageHeader title="Settings" description="App settings are managed from their specific admin areas." />
       <Panel className="mx-auto max-w-2xl">
-        <div className="space-y-4">
-          <ActionForm action={updateAppSetting} successMessage="Setting saved successfully." className="space-y-3">
-            <input type="hidden" name="key" value="community_button_label" />
-            <input type="hidden" name="description" value="Dashboard external community button label" />
-            <Field label="Community button label" name="value" defaultValue={map.get("community_button_label")?.value ?? "Community"} />
-            <PrimaryButton>Save label</PrimaryButton>
-          </ActionForm>
-          <ActionForm action={updateAppSetting} successMessage="Setting saved successfully." className="space-y-3">
-            <input type="hidden" name="key" value="community_button_url" />
-            <input type="hidden" name="description" value="Dashboard external community button URL" />
-            <Field label="Community button URL" name="value" type="url" defaultValue={map.get("community_button_url")?.value ?? ""} />
-            <PrimaryButton>Save URL</PrimaryButton>
-          </ActionForm>
+        <h2 className="font-semibold">University community buttons</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          Community button labels and URLs are now configured per university, so one university's button never affects another.
+        </p>
+        <div className="mt-4">
+          <SecondaryLink href="/admin/universities">Manage university settings</SecondaryLink>
         </div>
       </Panel>
     </>

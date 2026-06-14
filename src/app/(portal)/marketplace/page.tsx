@@ -10,7 +10,7 @@ import { EmptyState, Field, PageHeader, Panel, PrimaryButton, TextArea } from "@
 
 export default async function MarketplacePage({ searchParams }: { searchParams: Promise<{ tab?: string; category?: string }> }) {
   const { tab: requestedTab, category: activeCategory } = await searchParams;
-  const { supabase, profile, roles, user } = await getSessionContext();
+  const { supabase, effectiveUniversityId, roles, user } = await getSessionContext();
   const canCreateItem = canCreate(roles, "marketplace");
   const activeTab = requestedTab === "mine" || (requestedTab === "create" && canCreateItem) ? requestedTab : "all";
   const nav = [
@@ -22,7 +22,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
     .from("marketplace_items")
     .select("id,title,description,price_cents,category,profiles(full_name,email,phone)")
     .eq(activeTab === "mine" ? "seller_id" : "moderation_status", activeTab === "mine" ? user.id : "approved")
-    .eq("university_id", profile?.university_id)
+    .eq("university_id", effectiveUniversityId)
     .or(activeTab === "mine" ? "id.not.is.null" : `auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
     .order("created_at", { ascending: false });
   const categories = (items ?? []).map((item) => item.category).filter(Boolean);

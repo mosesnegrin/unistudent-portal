@@ -6,12 +6,12 @@ import { firstName } from "@/lib/format";
 import { PageHeader, Panel, SecondaryLink } from "@/components/ui";
 
 export default async function DashboardPage() {
-  const { supabase, profile, isAdmin } = await getSessionContext();
+  const { supabase, profile, isAdmin, effectiveUniversityId } = await getSessionContext();
   if (isAdmin) redirect("/admin");
 
-  const universityId = profile?.university_id;
+  const universityId = effectiveUniversityId ?? profile?.university_id;
   const now = new Date().toISOString();
-  const [{ data: events }, { data: announcements }, { data: offers }, { data: siteTerms }] = await Promise.all([
+  const [{ data: events }, { data: announcements }, { data: offers }, { data: university }] = await Promise.all([
     supabase
       .from("events")
       .select("id,title,starts_at,location")
@@ -36,14 +36,16 @@ export default async function DashboardPage() {
       .or(`auto_delete_at.is.null,auto_delete_at.gt.${now}`)
       .order("created_at", { ascending: false })
       .limit(3),
-    supabase
-      .from("app_settings")
-      .select("key,value")
-      .in("key", ["community_button_label", "community_button_url"])
+    universityId
+      ? supabase
+          .from("universities")
+          .select("community_button_label,community_button_url")
+          .eq("id", universityId)
+          .maybeSingle()
+      : Promise.resolve({ data: null })
   ]);
-  const termMap = new Map((siteTerms ?? []).map((term) => [term.key, term.value]));
-  const externalLabel = termMap.get("community_button_label")?.trim() || "Community";
-  const externalUrl = termMap.get("community_button_url")?.trim() || "";
+  const externalLabel = university?.community_button_label?.trim() || "Community";
+  const externalUrl = university?.community_button_url?.trim() || "";
 
   const shortcuts = [
     { href: "/events", label: "Events", icon: CalendarDays },

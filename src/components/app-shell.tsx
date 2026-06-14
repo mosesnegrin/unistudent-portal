@@ -1,17 +1,22 @@
 import Link from "next/link";
 import { GraduationCap, LogOut } from "lucide-react";
+import { CompanyUniversitySwitcher } from "@/components/company-university-switcher";
 import type { NavigationItem } from "@/lib/types";
 
 export function AppShell({
   children,
   navigation,
   title,
-  userName
+  userName,
+  companyUniversities,
+  selectedUniversityId
 }: {
   children: React.ReactNode;
   navigation: NavigationItem[];
   title: string;
   userName?: string | null;
+  companyUniversities?: Array<{ id: string; name: string }>;
+  selectedUniversityId?: string | null;
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-surface">
@@ -24,6 +29,9 @@ export function AppShell({
             <span className="truncate text-sm font-semibold sm:text-base">{title}</span>
           </Link>
           <div className="flex items-center gap-2">
+            {companyUniversities?.length ? (
+              <CompanyUniversitySwitcher universities={companyUniversities} selectedUniversityId={selectedUniversityId} />
+            ) : null}
             {userName ? <span className="hidden max-w-40 truncate text-sm text-muted sm:block">{userName}</span> : null}
             <form action="/logout" method="post">
               <button
@@ -49,7 +57,7 @@ export function AppShell({
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8">{children}</main>
       <footer className="border-t border-line bg-white/70 px-4 py-4 text-center text-xs text-muted">
-        Made by Moysis Negrin. 2026
+        Made by Moysis Negrin. © 2026 · <a className="font-medium text-ink underline-offset-4 hover:underline" href="mailto:moysis.negrin@lbs.ac.at">Contact</a>
       </footer>
     </div>
   );

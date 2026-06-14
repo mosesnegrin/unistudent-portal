@@ -5,12 +5,12 @@ import { EmptyState, PageHeader, Panel } from "@/components/ui";
 
 export default async function GuidePage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
   const { category: activeCategory } = await searchParams;
-  const { supabase, profile } = await getSessionContext();
+  const { supabase, effectiveUniversityId } = await getSessionContext();
   const { data: pages } = await supabase
     .from("guide_pages")
     .select("id,title,category,body,image_url,document_url,document_name")
     .eq("is_published", true)
-    .or(`university_id.eq.${profile?.university_id},university_id.is.null`)
+    .or(`university_id.eq.${effectiveUniversityId},university_id.is.null`)
     .or(`auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
     .order("category");
   const categories = (pages ?? []).map((page) => page.category).filter(Boolean);

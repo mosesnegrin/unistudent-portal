@@ -10,7 +10,7 @@ function hasAdminRole(provider: Provider) {
     provider?.user_roles?.some((item) => {
       const role = item.roles;
       const name = Array.isArray(role) ? role[0]?.name : role?.name;
-      return name === "university_admin" || name === "super_admin";
+      return name === "university_admin" || name === "super_admin" || name === "company";
     })
   );
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSessionContext, requireAdmin } from "@/lib/auth";
+import { isCompanyEmail } from "@/lib/email-domain";
 import { canCreate, noCreatePermissionMessage } from "@/lib/permissions";
 import { parseEuroInput } from "@/lib/money";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
@@ -25,6 +26,10 @@ function numberOrNull(formData: FormData, key: string) {
 
 function moneyOrNull(formData: FormData, key: string) {
   return parseEuroInput(value(formData, key));
+}
+
+function isPlatformAdmin(roles: UserRole[]) {
+  return roles.includes("super_admin") || roles.includes("company");
 }
 
 const imageTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -52,15 +57,17 @@ async function uploadOptionalAsset(
 }
 
 export async function createEvent(formData: FormData) {
-  const { supabase, user, profile, roles } = await getSessionContext();
+  const { supabase, user, profile, roles, effectiveUniversityId } = await getSessionContext();
   if (!canCreate(roles, "events")) throw new Error(noCreatePermissionMessage("event"));
+  const universityId = effectiveUniversityId ?? profile?.university_id;
+  if (!universityId) throw new Error("Select a university first.");
   const image = await uploadOptionalAsset(supabase, "event-assets", user.id, formData, "image", imageTypes);
   await supabase.from("events").insert({
     title: value(formData, "title"),
     description: value(formData, "description"),
     starts_at: value(formData, "starts_at"),
     location: value(formData, "location"),
-    university_id: profile?.university_id,
+    university_id: universityId,
     event_type: value(formData, "event_type"),
     capacity: numberOrNull(formData, "capacity"),
     price_cents: moneyOrNull(formData, "price_cents"),
@@ -77,8 +84,10 @@ export async function createEvent(formData: FormData) {
 }
 
 export async function createLesson(formData: FormData) {
-  const { supabase, user, profile, roles } = await getSessionContext();
+  const { supabase, user, profile, roles, effectiveUniversityId } = await getSessionContext();
   if (!canCreate(roles, "lessons")) throw new Error(noCreatePermissionMessage("lesson"));
+  const universityId = effectiveUniversityId ?? profile?.university_id;
+  if (!universityId) throw new Error("Select a university first.");
   await supabase.from("lessons").insert({
     course_name: value(formData, "course_name"),
     tutor_name: value(formData, "tutor_name"),
@@ -88,7 +97,7 @@ export async function createLesson(formData: FormData) {
     session_type: value(formData, "session_type"),
     availability: nullable(formData, "availability"),
     auto_delete_at: nullable(formData, "auto_delete_at"),
-    university_id: profile?.university_id,
+    university_id: universityId,
     created_by: user.id,
     moderation_status: "pending"
   });
@@ -96,8 +105,10 @@ export async function createLesson(formData: FormData) {
 }
 
 export async function createMaterial(formData: FormData) {
-  const { supabase, user, profile, roles } = await getSessionContext();
+  const { supabase, user, profile, roles, effectiveUniversityId } = await getSessionContext();
   if (!canCreate(roles, "materials")) throw new Error(noCreatePermissionMessage("material"));
+  const universityId = effectiveUniversityId ?? profile?.university_id;
+  if (!universityId) throw new Error("Select a university first.");
   const file = formData.get("file");
   let filePath: string | null = null;
 
@@ -117,7 +128,7 @@ export async function createMaterial(formData: FormData) {
     is_free: value(formData, "is_free") === "true",
     price_cents: moneyOrNull(formData, "price_cents"),
     auto_delete_at: nullable(formData, "auto_delete_at"),
-    university_id: profile?.university_id,
+    university_id: universityId,
     created_by: user.id,
     moderation_status: "pending"
   });
@@ -125,15 +136,17 @@ export async function createMaterial(formData: FormData) {
 }
 
 export async function createMarketplaceItem(formData: FormData) {
-  const { supabase, user, profile, roles } = await getSessionContext();
+  const { supabase, user, profile, roles, effectiveUniversityId } = await getSessionContext();
   if (!canCreate(roles, "marketplace")) throw new Error(noCreatePermissionMessage("marketplace item"));
+  const universityId = effectiveUniversityId ?? profile?.university_id;
+  if (!universityId) throw new Error("Select a university first.");
   await supabase.from("marketplace_items").insert({
     title: value(formData, "title"),
     description: value(formData, "description"),
     price_cents: moneyOrNull(formData, "price_cents"),
     category: value(formData, "category"),
     auto_delete_at: nullable(formData, "auto_delete_at"),
-    university_id: profile?.university_id,
+    university_id: universityId,
     seller_id: user.id,
     moderation_status: "pending"
   });
@@ -226,7 +239,7 @@ export async function moderateContent(formData: FormData): Promise<{ ok: true } 
 
     if (readError) return { ok: false, error: readError.message };
     if (!record) return { ok: false, error: "This item no longer exists or was already removed." };
-    if (!roles.includes("super_admin") && record.university_id !== profile?.university_id) {
+    if (!isPlatformAdmin(roles) && record.university_id !== profile?.university_id) {
       return { ok: false, error: "You can only manage content for your university." };
     }
 
@@ -259,9 +272,9 @@ export async function moderateContentForm(formData: FormData): Promise<void> {
 export async function createOffer(formData: FormData) {
   const { supabase, profile, roles, user } = await getSessionContext();
   if (!canCreate(roles, "offers")) throw new Error(noCreatePermissionMessage("offer"));
-  const isSuperAdmin = roles.includes("super_admin");
-  const isAdmin = roles.includes("super_admin") || roles.includes("university_admin");
-  const isAustriaWide = isSuperAdmin && value(formData, "is_austria_wide") === "true";
+  const isPlatform = isPlatformAdmin(roles);
+  const isAdmin = isPlatform || roles.includes("university_admin");
+  const isAustriaWide = isPlatform && value(formData, "is_austria_wide") === "true";
   const [image, document] = await Promise.all([
     uploadOptionalAsset(supabase, "offer-assets", user.id, formData, "image", imageTypes),
     uploadOptionalAsset(supabase, "offer-assets", user.id, formData, "document", documentTypes)
@@ -273,7 +286,7 @@ export async function createOffer(formData: FormData) {
     discount_details: value(formData, "discount_details"),
     expires_at: nullable(formData, "expires_at"),
     link: nullable(formData, "link"),
-    university_id: isSuperAdmin ? nullable(formData, "university_id") : profile?.university_id,
+    university_id: isPlatform ? nullable(formData, "university_id") : profile?.university_id,
     is_austria_wide: isAustriaWide,
     created_by: user.id,
     moderation_status: isAdmin ? "approved" : "pending",
@@ -295,7 +308,7 @@ export async function createAnnouncement(formData: FormData) {
   await supabase.from("announcements").insert({
     title: value(formData, "title"),
     body: value(formData, "body"),
-    university_id: roles.includes("super_admin") ? nullable(formData, "university_id") : profile?.university_id ?? null,
+    university_id: isPlatformAdmin(roles) ? nullable(formData, "university_id") : profile?.university_id ?? null,
     created_by: user.id,
     is_published: value(formData, "is_published") === "true",
     image_url: image?.url ?? null,
@@ -317,7 +330,7 @@ export async function createGuidePage(formData: FormData) {
     title: value(formData, "title"),
     category: value(formData, "category"),
     body: value(formData, "body"),
-    university_id: roles.includes("super_admin") ? nullable(formData, "university_id") : profile?.university_id ?? null,
+    university_id: isPlatformAdmin(roles) ? nullable(formData, "university_id") : profile?.university_id ?? null,
     created_by: user.id,
     is_published: value(formData, "is_published") === "true",
     image_url: image?.url ?? null,
@@ -331,7 +344,7 @@ export async function createGuidePage(formData: FormData) {
 
 export async function createUniversity(formData: FormData) {
   const { supabase, roles } = await requireAdmin();
-  if (!roles.includes("super_admin")) throw new Error("Only super admins can create universities.");
+  if (!isPlatformAdmin(roles)) throw new Error("Only platform admins can create universities.");
   await supabase.from("universities").insert({
     name: value(formData, "name"),
     allowed_email_domain: value(formData, "allowed_email_domain").toLowerCase(),
@@ -340,10 +353,62 @@ export async function createUniversity(formData: FormData) {
   revalidatePath("/admin/universities");
 }
 
+export async function toggleUniversityStatus(formData: FormData) {
+  const { roles } = await requireAdmin();
+  if (!isPlatformAdmin(roles)) throw new Error("Only platform admins can update universities.");
+  const serviceClient = createServiceRoleClient();
+  await serviceClient
+    .from("universities")
+    .update({ is_active: value(formData, "is_active") === "true" })
+    .eq("id", value(formData, "id"));
+  revalidatePath("/admin/universities");
+  revalidatePath("/login");
+}
+
+export async function updateUniversityCommunity(formData: FormData) {
+  const { profile, roles } = await requireAdmin();
+  const universityId = value(formData, "id");
+  const isPlatform = isPlatformAdmin(roles);
+  if (!isPlatform && universityId !== profile?.university_id) {
+    throw new Error("You can only update your university settings.");
+  }
+  const serviceClient = createServiceRoleClient();
+  await serviceClient
+    .from("universities")
+    .update({
+      community_button_label: value(formData, "community_button_label") || "Community",
+      community_button_url: nullable(formData, "community_button_url")
+    })
+    .eq("id", universityId);
+  revalidatePath("/admin/universities");
+  revalidatePath("/dashboard");
+}
+
+export async function ensureCompanyRole() {
+  const { supabase } = await getSessionContext();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user?.email || !isCompanyEmail(user.email)) return;
+
+  const serviceClient = createServiceRoleClient();
+  const [{ data: profile }, { data: role }] = await Promise.all([
+    serviceClient.from("profiles").select("id").eq("id", user.id).maybeSingle(),
+    serviceClient.from("roles").select("id").eq("name", "company").maybeSingle()
+  ]);
+
+  if (profile && role) {
+    await serviceClient.from("user_roles").upsert({
+      user_id: user.id,
+      role_id: role.id
+    });
+  }
+}
+
 export async function assignRole(formData: FormData) {
   const { supabase, roles } = await requireAdmin();
-  if (!roles.includes("super_admin") && value(formData, "role") === "super_admin") {
-    throw new Error("Only super admins can assign super admin.");
+  if (!isPlatformAdmin(roles) && (value(formData, "role") === "super_admin" || value(formData, "role") === "company")) {
+    throw new Error("Only platform admins can assign platform roles.");
   }
   const { data: role } = await supabase.from("roles").select("id").eq("name", value(formData, "role") as UserRole).single();
   if (role) {
@@ -368,8 +433,8 @@ export async function removeRole(formData: FormData) {
 export async function deleteUser(userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const { user, roles } = await requireAdmin();
-    if (!roles.includes("super_admin")) {
-      return { ok: false, error: "Only super admins can delete users." };
+    if (!isPlatformAdmin(roles)) {
+      return { ok: false, error: "Only platform admins can delete users." };
     }
 
     if (user.id === userId) {
@@ -411,7 +476,7 @@ export async function deleteContent(table: string, id: string): Promise<{ ok: tr
 
     if (readError) return { ok: false, error: readError.message };
     if (!record) return { ok: false, error: "This item no longer exists or was already removed." };
-    if (!roles.includes("super_admin") && record.university_id !== profile?.university_id) {
+    if (!isPlatformAdmin(roles) && record.university_id !== profile?.university_id) {
       return { ok: false, error: "You can only delete content for your university." };
     }
 
@@ -442,7 +507,7 @@ export async function updateGuidePage(formData: FormData) {
     category: value(formData, "category"),
     body: value(formData, "body"),
     is_published: value(formData, "is_published") === "true",
-    university_id: roles.includes("super_admin") ? nullable(formData, "university_id") : profile?.university_id ?? null,
+    university_id: isPlatformAdmin(roles) ? nullable(formData, "university_id") : profile?.university_id ?? null,
     auto_delete_at: nullable(formData, "auto_delete_at")
   };
   if (image) updates.image_url = image.url;
