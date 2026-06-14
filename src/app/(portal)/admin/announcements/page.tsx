@@ -18,6 +18,14 @@ export default async function AdminAnnouncementsPage() {
           <form action={createAnnouncement} className="mt-4 space-y-4">
             <Field label="Title" name="title" required />
             <TextArea label="Body" name="body" required />
+            <label className="block">
+              <span className="text-sm font-medium">Image</span>
+              <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Document</span>
+              <input name="document" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />
+            </label>
             <SelectField label="Published" name="is_published" defaultValue="true">
               <option value="true">Yes</option>
               <option value="false">No</option>

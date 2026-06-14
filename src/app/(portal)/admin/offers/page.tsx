@@ -41,6 +41,14 @@ export default async function AdminOffersPage() {
             <Field label="Discount details" name="discount_details" required />
             <Field label="Expiry date" name="expires_at" type="date" />
             <Field label="Link" name="link" type="url" />
+            <label className="block">
+              <span className="text-sm font-medium">Image</span>
+              <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Document</span>
+              <input name="document" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />
+            </label>
             <SelectField label="Austria-wide" name="is_austria_wide" defaultValue="false">
               <option value="false">No</option>
               <option value="true">Yes</option>

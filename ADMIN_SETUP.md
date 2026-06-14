@@ -121,6 +121,8 @@ Super admins see submitted content from every university. University admins see 
 
 In `/admin/events`, each event row shows an RSVP count. Expanding it shows participant full name, email, phone when available, and registration date/time.
 
+Migration `005` fixes event visibility policies so dashboard events and `/events` use the same approved/university event logic.
+
 ## User Page Tabs
 
 Students and partners see tabs on the content pages:
@@ -149,6 +151,20 @@ Button meanings:
 - Request lesson/material: free request-based content.
 - Open offer: opens the partner offer link.
 - Contact provider: shows offer provider contact details.
+
+## Uploads
+
+Announcements, offers, and guide pages support optional image and document uploads. The app uses Supabase Storage buckets `announcement-assets`, `offer-assets`, and `guide-assets`.
+
+Images display inside cards/pages. Documents appear as Download document buttons.
+
+## Terms
+
+Only super admins can access `/admin/terms`. Use it to edit site-wide values such as `home_external_button_label`, `home_external_button_url`, role labels, and guide category labels.
+
+The internal Community tab has been removed. The dashboard external button appears only when `home_external_button_url` has a value.
+
+The app footer reads: `Made by Moysis Negrin. 2026`.
 
 ## RLS Troubleshooting
 

@@ -8,7 +8,7 @@ export default async function DashboardPage() {
   if (isAdmin) redirect("/admin");
 
   const universityId = profile?.university_id;
-  const [{ data: events }, { data: announcements }, { data: offers }] = await Promise.all([
+  const [{ data: events }, { data: announcements }, { data: offers }, { data: siteTerms }] = await Promise.all([
     supabase
       .from("events")
       .select("id,title,starts_at,location")
@@ -18,7 +18,7 @@ export default async function DashboardPage() {
       .limit(3),
     supabase
       .from("announcements")
-      .select("id,title,body,created_at")
+      .select("id,title,body,created_at,image_url,document_url,document_name")
       .eq("is_published", true)
       .or(`university_id.eq.${universityId},university_id.is.null`)
       .order("created_at", { ascending: false })
@@ -28,21 +28,27 @@ export default async function DashboardPage() {
       .select("id,title,partner_name,discount_details")
       .or(`university_id.eq.${universityId},is_austria_wide.eq.true`)
       .order("created_at", { ascending: false })
-      .limit(3)
+      .limit(3),
+    supabase
+      .from("site_terms")
+      .select("key,value")
+      .in("key", ["home_external_button_label", "home_external_button_url"])
   ]);
+  const termMap = new Map((siteTerms ?? []).map((term) => [term.key, term.value]));
+  const externalLabel = termMap.get("home_external_button_label")?.trim() || "Community";
+  const externalUrl = termMap.get("home_external_button_url")?.trim() || "";
 
   const shortcuts = [
     { href: "/events", label: "Events", icon: CalendarDays },
     { href: "/lessons", label: "Private lessons", icon: HandCoins },
     { href: "/materials", label: "Notes", icon: NotebookTabs },
     { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
-    { href: "/offers", label: "Offers", icon: TicketPercent },
-    { href: "/community", label: "Community", icon: MessagesSquare }
+    { href: "/offers", label: "Offers", icon: TicketPercent }
   ];
 
   return (
     <>
-      <PageHeader title="Dashboard" description="Your university updates, study resources, events, and student community in one place." />
+      <PageHeader title="Dashboard" description="Your university updates, study resources, events, and student services in one place." />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {shortcuts.map((item) => (
           <SecondaryLink key={item.href} href={item.href}>
@@ -50,6 +56,17 @@ export default async function DashboardPage() {
             {item.label}
           </SecondaryLink>
         ))}
+        {externalUrl ? (
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="focus-ring inline-flex min-h-10 items-center justify-center rounded-lg border border-line bg-white px-3 text-sm font-medium transition hover:bg-surface"
+          >
+            <MessagesSquare className="mr-2" size={18} />
+            {externalLabel}
+          </a>
+        ) : null}
       </div>
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <Panel>
@@ -75,6 +92,8 @@ export default async function DashboardPage() {
                 <div key={item.id} className="rounded-lg bg-surface p-3">
                   <p className="font-medium">{item.title}</p>
                   <p className="mt-1 line-clamp-3 text-sm text-muted">{item.body}</p>
+                  {item.image_url ? <img src={item.image_url} alt="" className="mt-3 max-h-40 w-full rounded-lg object-cover" /> : null}
+                  {item.document_url ? <a href={item.document_url} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-medium underline">Download document</a> : null}
                 </div>
               ))}
             </div>

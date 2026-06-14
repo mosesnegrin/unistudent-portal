@@ -15,7 +15,7 @@ export default async function ProfilePage() {
 
   return (
     <>
-      <PageHeader title="Profile" description="Keep your profile and interests current for community matching." />
+      <PageHeader title="Profile" description="Keep your profile and contact information current." />
       <Panel className="max-w-2xl">
         <form action={updateProfile} className="space-y-4">
           <Field label="Full name" name="full_name" defaultValue={profile?.full_name} required />

@@ -22,6 +22,30 @@ function numberOrNull(formData: FormData, key: string) {
   return item.length ? Number(item) : null;
 }
 
+const imageTypes = ["image/jpeg", "image/png", "image/webp"];
+const documentTypes = ["application/pdf", ...imageTypes];
+
+async function uploadOptionalAsset(
+  supabase: Awaited<ReturnType<typeof getSessionContext>>["supabase"],
+  bucket: string,
+  userId: string,
+  formData: FormData,
+  field: string,
+  allowedTypes: string[]
+) {
+  const file = formData.get(field);
+  if (!(file instanceof File) || file.size === 0) return null;
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error("Unsupported file type.");
+  }
+  const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+  const path = `${userId}/${crypto.randomUUID()}-${cleanName}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: false });
+  if (error) throw new Error(error.message);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  return { url: data.publicUrl, name: file.name };
+}
+
 export async function createEvent(formData: FormData) {
   const { supabase, user, profile, roles } = await getSessionContext();
   if (!canCreate(roles, "events")) throw new Error(noCreatePermissionMessage("event"));
@@ -134,7 +158,6 @@ export async function updateProfile(formData: FormData) {
   }
 
   revalidatePath("/profile");
-  revalidatePath("/community");
 }
 
 export async function rsvpEvent(formData: FormData) {
@@ -213,11 +236,15 @@ export async function moderateContent(formData: FormData) {
 }
 
 export async function createOffer(formData: FormData) {
-  const { supabase, profile, roles } = await getSessionContext();
+  const { supabase, profile, roles, user } = await getSessionContext();
   if (!canCreate(roles, "offers")) throw new Error(noCreatePermissionMessage("offer"));
   const isSuperAdmin = roles.includes("super_admin");
   const isAdmin = roles.includes("super_admin") || roles.includes("university_admin");
   const isAustriaWide = isSuperAdmin && value(formData, "is_austria_wide") === "true";
+  const [image, document] = await Promise.all([
+    uploadOptionalAsset(supabase, "offer-assets", user.id, formData, "image", imageTypes),
+    uploadOptionalAsset(supabase, "offer-assets", user.id, formData, "document", documentTypes)
+  ]);
   await supabase.from("offers").insert({
     title: value(formData, "title"),
     description: value(formData, "description"),
@@ -227,8 +254,11 @@ export async function createOffer(formData: FormData) {
     link: nullable(formData, "link"),
     university_id: isSuperAdmin ? nullable(formData, "university_id") : profile?.university_id,
     is_austria_wide: isAustriaWide,
-    created_by: (await supabase.auth.getUser()).data.user?.id,
-    moderation_status: isAdmin ? "approved" : "pending"
+    created_by: user.id,
+    moderation_status: isAdmin ? "approved" : "pending",
+    image_url: image?.url ?? null,
+    document_url: document?.url ?? null,
+    document_name: document?.name ?? null
   });
   revalidatePath("/admin/offers");
   revalidatePath("/offers");
@@ -236,12 +266,19 @@ export async function createOffer(formData: FormData) {
 
 export async function createAnnouncement(formData: FormData) {
   const { supabase, profile, roles, user } = await requireAdmin();
+  const [image, document] = await Promise.all([
+    uploadOptionalAsset(supabase, "announcement-assets", user.id, formData, "image", imageTypes),
+    uploadOptionalAsset(supabase, "announcement-assets", user.id, formData, "document", documentTypes)
+  ]);
   await supabase.from("announcements").insert({
     title: value(formData, "title"),
     body: value(formData, "body"),
     university_id: roles.includes("super_admin") ? nullable(formData, "university_id") : profile?.university_id,
     created_by: user.id,
-    is_published: value(formData, "is_published") === "true"
+    is_published: value(formData, "is_published") === "true",
+    image_url: image?.url ?? null,
+    document_url: document?.url ?? null,
+    document_name: document?.name ?? null
   });
   revalidatePath("/admin/announcements");
   revalidatePath("/dashboard");
@@ -249,13 +286,20 @@ export async function createAnnouncement(formData: FormData) {
 
 export async function createGuidePage(formData: FormData) {
   const { supabase, profile, roles, user } = await requireAdmin();
+  const [image, document] = await Promise.all([
+    uploadOptionalAsset(supabase, "guide-assets", user.id, formData, "image", imageTypes),
+    uploadOptionalAsset(supabase, "guide-assets", user.id, formData, "document", documentTypes)
+  ]);
   await supabase.from("guide_pages").insert({
     title: value(formData, "title"),
     category: value(formData, "category"),
     body: value(formData, "body"),
     university_id: roles.includes("super_admin") ? nullable(formData, "university_id") : profile?.university_id,
     created_by: user.id,
-    is_published: value(formData, "is_published") === "true"
+    is_published: value(formData, "is_published") === "true",
+    image_url: image?.url ?? null,
+    document_url: document?.url ?? null,
+    document_name: document?.name ?? null
   });
   revalidatePath("/admin");
   revalidatePath("/guide");
@@ -357,6 +401,43 @@ export async function deleteContent(table: string, id: string): Promise<{ ok: tr
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Unable to delete content." };
   }
+}
+
+export async function createSiteTerm(formData: FormData) {
+  const { supabase, roles } = await requireAdmin();
+  if (!roles.includes("super_admin")) throw new Error("Only super admins can manage terms.");
+  await supabase.from("site_terms").insert({
+    key: value(formData, "key"),
+    value: value(formData, "value"),
+    description: nullable(formData, "description"),
+    category: nullable(formData, "category")
+  });
+  revalidatePath("/admin/terms");
+  revalidatePath("/dashboard");
+}
+
+export async function updateSiteTerm(formData: FormData) {
+  const { supabase, roles } = await requireAdmin();
+  if (!roles.includes("super_admin")) throw new Error("Only super admins can manage terms.");
+  await supabase.from("site_terms").update({
+    value: value(formData, "value"),
+    description: nullable(formData, "description"),
+    category: nullable(formData, "category")
+  }).eq("id", value(formData, "id"));
+  revalidatePath("/admin/terms");
+  revalidatePath("/dashboard");
+}
+
+export async function deleteSiteTerm(formData: FormData) {
+  const { supabase, roles } = await requireAdmin();
+  if (!roles.includes("super_admin")) throw new Error("Only super admins can manage terms.");
+  const protectedKeys = ["home_external_button_label", "home_external_button_url"];
+  if (protectedKeys.includes(value(formData, "key"))) {
+    throw new Error("This term is required and cannot be deleted.");
+  }
+  await supabase.from("site_terms").delete().eq("id", value(formData, "id"));
+  revalidatePath("/admin/terms");
+  revalidatePath("/dashboard");
 }
 
 export async function goDashboard() {

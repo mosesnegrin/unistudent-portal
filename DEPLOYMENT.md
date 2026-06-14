@@ -8,6 +8,7 @@ Create a Supabase project, then run the SQL migrations in order:
 2. [supabase/migrations/002_auth_permissions_provider_info.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/002_auth_permissions_provider_info.sql)
 3. [supabase/migrations/003_fix_admin_queries_and_content_visibility.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/003_fix_admin_queries_and_content_visibility.sql)
 4. [supabase/migrations/004_fix_visibility_users_rsvp_actions.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/004_fix_visibility_users_rsvp_actions.sql)
+5. [supabase/migrations/005_events_uploads_terms_footer.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/005_events_uploads_terms_footer.sql)
 
 After the migration, add your first university in the `universities` table.
 
@@ -85,6 +86,8 @@ Moderation pages show pending, approved, and rejected content in one table. Pend
 
 Events can use internal RSVP, external registration links, organizer contact details, or no registration button.
 
+Migration `005` adds upload support for announcements, offers, and guide pages using `announcement-assets`, `offer-assets`, and `guide-assets`. It also adds `/admin/terms`, removes the internal Community navigation, and adds the app footer.
+
 If users or approved content do not appear, verify:
 
 - `SUPABASE_SERVICE_ROLE_KEY` exists in Vercel.
@@ -92,6 +95,7 @@ If users or approved content do not appear, verify:
 - Public content has `moderation_status = approved`.
 - The viewer profile has the correct `university_id`.
 - Event pages show current/future approved events; check event dates if a past event is not visible in the default event tab.
+- For uploads, confirm the storage buckets from migration `005` exist.
 
 ## 8. Test Production
 

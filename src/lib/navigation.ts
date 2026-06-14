@@ -8,11 +8,11 @@ export const studentNavigation: NavigationItem[] = [
   { href: "/marketplace", label: "Market" },
   { href: "/offers", label: "Offers" },
   { href: "/guide", label: "Guide" },
-  { href: "/community", label: "Community" },
   { href: "/profile", label: "Profile" }
 ];
 
-export const adminNavigation: NavigationItem[] = [
+export function getAdminNavigation(isSuperAdmin: boolean): NavigationItem[] {
+  return [
   { href: "/admin", label: "Overview" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/events", label: "Events" },
@@ -22,5 +22,7 @@ export const adminNavigation: NavigationItem[] = [
   { href: "/admin/offers", label: "Offers" },
   { href: "/admin/announcements", label: "Announcements" },
   { href: "/admin/reports", label: "Reports" },
-  { href: "/admin/universities", label: "Universities" }
-];
+  { href: "/admin/universities", label: "Universities" },
+  ...(isSuperAdmin ? [{ href: "/admin/terms", label: "Terms" }] : [])
+  ];
+}

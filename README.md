@@ -48,6 +48,7 @@ npm run dev
 4. Run [supabase/migrations/002_auth_permissions_provider_info.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/002_auth_permissions_provider_info.sql) after the first migration.
 5. Run [supabase/migrations/003_fix_admin_queries_and_content_visibility.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/003_fix_admin_queries_and_content_visibility.sql) after the second migration.
 6. Run [supabase/migrations/004_fix_visibility_users_rsvp_actions.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/004_fix_visibility_users_rsvp_actions.sql) after the third migration.
+7. Run [supabase/migrations/005_events_uploads_terms_footer.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/005_events_uploads_terms_footer.sql) after the fourth migration.
 
 These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, and role-based insert permissions.
 
@@ -173,6 +174,7 @@ In Supabase:
 - `/admin/announcements`: publish official announcements
 - `/admin/reports`: review reports and flagged content
 - `/admin/universities`: add universities and guide pages
+- `/admin/terms`: super-admin-only site terms, labels, and dashboard external button settings
 
 Super admins see users and submitted content across all universities. University admins see only users and submitted content for their own university.
 
@@ -183,6 +185,8 @@ If `/admin/users` or admin tables are empty when data exists, check that `SUPABA
 `/admin/users` loads profiles, role assignments, and role names with separate server-side queries to avoid ambiguous Supabase relationship embeds.
 
 `/admin/events` shows RSVP counts for each event. Admins can expand the RSVP section to see participant name, email, phone, and registration time. Super admins see all event RSVPs; university admins see RSVPs only for their university events.
+
+Migration `005` fixes event visibility policies and keeps event page queries aligned with the dashboard’s approved/university event logic.
 
 ## Adding Real Content
 
@@ -223,6 +227,12 @@ Action buttons:
 - Marketplace: Contact seller.
 - Lessons: Request lesson for free lessons, Contact tutor for paid lessons.
 - Offers: Open offer when a link exists, Contact provider when only contact details exist.
+
+Announcements, offers, and guide pages support optional image and document uploads through Supabase Storage buckets `announcement-assets`, `offer-assets`, and `guide-assets`. Images display in cards/pages, and documents show a Download document button.
+
+The internal Community tab has been removed. The dashboard can show a customizable external-link button controlled by `/admin/terms` keys `home_external_button_label` and `home_external_button_url`. If the URL is empty, the button is hidden.
+
+All student and admin pages include the footer: `Made by Moysis Negrin. 2026`.
 
 Admins can add:
 

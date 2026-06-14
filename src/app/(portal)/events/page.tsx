@@ -16,7 +16,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
     { href: "/events?tab=registered", label: "My registered events" },
     ...(canCreateEvent ? [{ href: "/events?tab=create", label: "Create event" }] : [])
   ];
-  const eventSelect = "id,title,description,starts_at,location,event_type,price_cents,moderation_status,registration_type,external_registration_url,contact_email,contact_phone,profiles(full_name,email,phone)";
+  const eventSelect = "id,title,description,starts_at,location,event_type,price_cents,moderation_status,registration_type,external_registration_url,contact_email,contact_phone,created_by";
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const futureFrom = today.toISOString();
@@ -47,6 +47,11 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
       })
     : ((events ?? []) as Array<Record<string, unknown>>)
   ).filter(Boolean) as Array<Record<string, unknown>>;
+  const providerIds = Array.from(new Set(visibleEvents.map((event) => event.created_by).filter(Boolean).map(String)));
+  const { data: providers } = providerIds.length
+    ? await supabase.from("profiles").select("id,full_name,email,phone").in("id", providerIds)
+    : { data: [] };
+  const providerById = new Map((providers ?? []).map((item) => [item.id, item]));
 
   return (
     <>
@@ -82,7 +87,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                       </details>
                     ) : null}
                   </div>
-                  <ProviderInfo provider={event.profiles as never} label="Posted by" />
+                  <ProviderInfo provider={(event.created_by ? providerById.get(String(event.created_by)) : null) as never} label="Posted by" />
                 </div>
               </Panel>
             ))

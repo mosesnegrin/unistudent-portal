@@ -14,7 +14,7 @@ export function AppShell({
   userName?: string | null;
 }) {
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="flex min-h-screen flex-col bg-surface">
       <header className="sticky top-0 z-30 border-b border-line bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
           <Link href="/dashboard" className="flex min-w-0 items-center gap-2">
@@ -47,7 +47,10 @@ export function AppShell({
           ))}
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:py-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8">{children}</main>
+      <footer className="border-t border-line bg-white/70 px-4 py-4 text-center text-xs text-muted">
+        Made by Moysis Negrin. 2026
+      </footer>
     </div>
   );
 }

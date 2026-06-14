@@ -16,7 +16,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
   ];
   let query = supabase
     .from("offers")
-    .select("id,title,description,partner_name,discount_details,expires_at,link,is_austria_wide,profiles(full_name,email,phone)")
+    .select("id,title,description,partner_name,discount_details,expires_at,link,is_austria_wide,image_url,document_url,document_name,profiles(full_name,email,phone)")
     .order("created_at", { ascending: false });
   if (activeTab === "mine") {
     query = query.eq("created_by", user.id);
@@ -39,10 +39,12 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
                 <p className="mt-1 text-sm text-muted">{offer.partner_name}</p>
                 <p className="mt-3 text-sm leading-6 text-muted">{offer.description}</p>
                 <p className="mt-3 text-sm font-medium">{offer.discount_details}</p>
+                {offer.image_url ? <img src={offer.image_url} alt="" className="mt-4 max-h-64 w-full rounded-lg object-cover" /> : null}
               </div>
               <ProviderInfo provider={offer.profiles as never} label="Offered by" official={!offer.profiles} />
             </div>
             {offer.link ? <a className="mt-4 inline-block text-sm font-medium underline" href={offer.link}>Open offer</a> : null}
+            {offer.document_url ? <a className="focus-ring mt-4 inline-flex min-h-10 items-center rounded-lg border border-line px-3 text-sm font-medium" href={offer.document_url} target="_blank" rel="noreferrer">Download document</a> : null}
             {!offer.link && offer.profiles ? (
               <details className="mt-4 rounded-lg bg-surface p-3 text-sm">
                 <summary className="cursor-pointer font-medium">Contact provider</summary>
@@ -62,6 +64,14 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
               <Field label="Discount details" name="discount_details" required />
               <Field label="Expiry date" name="expires_at" type="date" />
               <Field label="Link" name="link" type="url" />
+              <label className="block">
+                <span className="text-sm font-medium">Image</span>
+                <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">Document</span>
+                <input name="document" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />
+              </label>
               <SelectField label="Austria-wide" name="is_austria_wide" defaultValue="false">
                 <option value="false">No</option>
                 <option value="true">Yes</option>

@@ -53,7 +53,8 @@ export default async function AdminPage() {
           ["/admin/offers", "Offers and partners"],
           ["/admin/announcements", "Official announcements"],
           ["/admin/reports", "Reports and flags"],
-          ["/admin/universities", "Universities"]
+          ["/admin/universities", "Universities"],
+          ...(roles.includes("super_admin") ? [["/admin/terms", "Terms and labels"]] : [])
         ].map(([href, label]) => <SecondaryLink key={href} href={href}>{label}</SecondaryLink>)}
       </div>
     </>

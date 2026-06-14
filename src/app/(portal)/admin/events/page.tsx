@@ -18,11 +18,19 @@ export default async function AdminEventsPage() {
   const adminClient = createServiceRoleClient();
   let query = adminClient
     .from("events")
-    .select("id,title,description,starts_at,location,price_cents,capacity,moderation_status,profiles(full_name,email),universities(name)")
+    .select("id,title,description,starts_at,location,price_cents,capacity,moderation_status,created_by,university_id")
     .order("created_at", { ascending: false });
   if (!roles.includes("super_admin")) query = query.eq("university_id", profile?.university_id);
   const { data, error } = await query;
   const events = (data ?? []) as Array<Record<string, unknown>>;
+  const providerIds = Array.from(new Set(events.map((event) => event.created_by).filter(Boolean).map(String)));
+  const universityIds = Array.from(new Set(events.map((event) => event.university_id).filter(Boolean).map(String)));
+  const [{ data: providers }, { data: universities }] = await Promise.all([
+    providerIds.length ? adminClient.from("profiles").select("id,full_name,email").in("id", providerIds) : Promise.resolve({ data: [] }),
+    universityIds.length ? adminClient.from("universities").select("id,name").in("id", universityIds) : Promise.resolve({ data: [] })
+  ]);
+  const providerById = new Map((providers ?? []).map((item) => [item.id, item]));
+  const universityById = new Map((universities ?? []).map((item) => [item.id, item]));
   const eventIds = events.map((event) => String(event.id));
   const { data: rsvps } = eventIds.length
     ? await adminClient
@@ -56,11 +64,14 @@ export default async function AdminEventsPage() {
             { key: "description", label: "Description" },
             { key: "starts_at", label: "Date/time", render: (item) => item.starts_at ? new Date(String(item.starts_at)).toLocaleString() : "" },
             { key: "location", label: "Location" },
-            { key: "created_by_name", label: "Created by", render: (item) => provider(item, "full_name") || provider(item, "email") },
-            { key: "created_by_email", label: "Created by email", render: (item) => provider(item, "email") },
+            { key: "created_by_name", label: "Created by", render: (item) => {
+              const row = item.created_by ? providerById.get(String(item.created_by)) : null;
+              return row?.full_name || row?.email || "";
+            } },
+            { key: "created_by_email", label: "Created by email", render: (item) => item.created_by ? providerById.get(String(item.created_by))?.email ?? "" : "" },
             { key: "price_cents", label: "Price/free", render: (item) => item.price_cents ? `EUR ${(Number(item.price_cents) / 100).toFixed(2)}` : "Free" },
             { key: "capacity", label: "Capacity" },
-            { key: "university", label: "University", render: university },
+            { key: "university", label: "University", render: (item) => item.university_id ? universityById.get(String(item.university_id))?.name ?? "" : "" },
             {
               key: "rsvps",
               label: "RSVPs",
