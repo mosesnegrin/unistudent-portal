@@ -104,6 +104,7 @@ export function ManagementTable({
             {items.map((item) => {
               const status = String(item.moderation_status ?? "approved");
               const titleValue = String(item.title ?? item.course_name ?? "Untitled");
+              const expired = Boolean(item.auto_delete_at && new Date(String(item.auto_delete_at)) <= new Date());
               return (
                 <tr key={String(item.id)} className="border-b border-line align-top last:border-0">
                   {columns.map((column) => (
@@ -116,6 +117,7 @@ export function ManagementTable({
                       {status === "approved" ? <CheckCircle2 className="text-emerald-600" size={17} /> : null}
                       {status === "rejected" ? <XCircle className="text-rose-600" size={17} /> : null}
                       <StatusBadge value={status} />
+                      {expired ? <StatusBadge value="expired" /> : null}
                     </div>
                   </td>
                   <td className="py-3 pr-3">

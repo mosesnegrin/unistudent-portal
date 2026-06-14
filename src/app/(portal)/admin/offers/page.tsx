@@ -20,7 +20,7 @@ export default async function AdminOffersPage() {
   const adminClient = createServiceRoleClient();
   let offersQuery = adminClient
     .from("offers")
-    .select("id,title,description,partner_name,discount_details,expires_at,is_austria_wide,moderation_status,profiles(full_name,email),universities(name)")
+    .select("id,title,description,partner_name,discount_details,expires_at,is_austria_wide,moderation_status,auto_delete_at,profiles(full_name,email),universities(name)")
     .order("created_at", { ascending: false });
   if (!roles.includes("super_admin")) offersQuery = offersQuery.eq("university_id", profile?.university_id);
   const [{ data: offers }, { data: universities }] = await Promise.all([
@@ -41,6 +41,7 @@ export default async function AdminOffersPage() {
             <Field label="Discount details" name="discount_details" required />
             <Field label="Expiry date" name="expires_at" type="date" />
             <Field label="Link" name="link" type="url" />
+            <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
             <label className="block">
               <span className="text-sm font-medium">Image</span>
               <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />

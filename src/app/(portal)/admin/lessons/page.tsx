@@ -18,7 +18,7 @@ export default async function AdminLessonsPage() {
   const adminClient = createServiceRoleClient();
   let query = adminClient
     .from("lessons")
-    .select("id,course_name,description,tutor_name,price_cents,session_type,moderation_status,profiles(full_name,email),universities(name)")
+    .select("id,course_name,description,tutor_name,price_cents,session_type,moderation_status,auto_delete_at,profiles(full_name,email),universities(name)")
     .order("created_at", { ascending: false });
   if (!roles.includes("super_admin")) query = query.eq("university_id", profile?.university_id);
   const { data, error } = await query;

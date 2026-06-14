@@ -20,6 +20,7 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
     ? await supabase.from("material_requests").select(`status,message,materials(${materialSelect})`).eq("requester_id", user.id).order("created_at", { ascending: false })
     : activeTab === "all"
       ? await supabase.from("materials").select(materialSelect).eq("moderation_status", "approved").eq("university_id", profile?.university_id).order("created_at", { ascending: false })
+        .or(`auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
       : { data: [] };
   const materials = (activeTab === "requests"
     ? ((data ?? []) as Array<Record<string, unknown>>).map((item) => {
@@ -91,6 +92,7 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
                 <option value="false">Paid</option>
               </SelectField>
               <Field label="Price in cents" name="price_cents" type="number" />
+              <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
               <PrimaryButton>Submit for approval</PrimaryButton>
             </form>
           </Panel>

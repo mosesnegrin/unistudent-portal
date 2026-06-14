@@ -28,6 +28,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
           .select(lessonSelect)
           .eq("moderation_status", "approved")
           .eq("university_id", profile?.university_id)
+          .or(`auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
           .order("created_at", { ascending: false })
       : { data: [] };
   const lessons = (activeTab === "requests"
@@ -87,6 +88,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
                 <option value="multiple_sessions">Multiple sessions</option>
               </SelectField>
               <Field label="Availability" name="availability" />
+              <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
               <PrimaryButton>Submit for approval</PrimaryButton>
             </form>
           </Panel>

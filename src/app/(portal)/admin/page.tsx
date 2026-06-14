@@ -52,9 +52,10 @@ export default async function AdminPage() {
           ["/admin/marketplace", "Marketplace moderation"],
           ["/admin/offers", "Offers and partners"],
           ["/admin/announcements", "Official announcements"],
+          ["/admin/guide", "Guide material"],
+          ["/admin/settings", "App settings"],
           ["/admin/reports", "Reports and flags"],
-          ["/admin/universities", "Universities"],
-          ...(roles.includes("super_admin") ? [["/admin/terms", "Terms and labels"]] : [])
+          ["/admin/universities", "Universities"]
         ].map(([href, label]) => <SecondaryLink key={href} href={href}>{label}</SecondaryLink>)}
       </div>
     </>

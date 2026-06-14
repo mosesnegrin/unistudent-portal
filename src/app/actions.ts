@@ -62,6 +62,7 @@ export async function createEvent(formData: FormData) {
     external_registration_url: nullable(formData, "external_registration_url"),
     contact_email: nullable(formData, "contact_email"),
     contact_phone: nullable(formData, "contact_phone"),
+    auto_delete_at: nullable(formData, "auto_delete_at"),
     created_by: user.id,
     moderation_status: "pending"
   });
@@ -79,6 +80,7 @@ export async function createLesson(formData: FormData) {
     price_cents: numberOrNull(formData, "price_cents"),
     session_type: value(formData, "session_type"),
     availability: nullable(formData, "availability"),
+    auto_delete_at: nullable(formData, "auto_delete_at"),
     university_id: profile?.university_id,
     created_by: user.id,
     moderation_status: "pending"
@@ -107,6 +109,7 @@ export async function createMaterial(formData: FormData) {
     file_path: filePath,
     is_free: value(formData, "is_free") === "true",
     price_cents: numberOrNull(formData, "price_cents"),
+    auto_delete_at: nullable(formData, "auto_delete_at"),
     university_id: profile?.university_id,
     created_by: user.id,
     moderation_status: "pending"
@@ -122,6 +125,7 @@ export async function createMarketplaceItem(formData: FormData) {
     description: value(formData, "description"),
     price_cents: numberOrNull(formData, "price_cents"),
     category: value(formData, "category"),
+    auto_delete_at: nullable(formData, "auto_delete_at"),
     university_id: profile?.university_id,
     seller_id: user.id,
     moderation_status: "pending"
@@ -219,7 +223,7 @@ export async function moderateContent(formData: FormData) {
   const table = value(formData, "table");
   const id = value(formData, "id");
   const status = value(formData, "status") as ModerationStatus;
-  const allowedTables = ["events", "lessons", "materials", "marketplace_items", "offers"];
+  const allowedTables = ["events", "lessons", "materials", "marketplace_items", "offers", "guide_pages"];
   if (!allowedTables.includes(table)) throw new Error("Unsupported moderation table.");
 
   const serviceClient = createServiceRoleClient();
@@ -229,7 +233,10 @@ export async function moderateContent(formData: FormData) {
     throw new Error("You can only manage content for your university.");
   }
 
-  await serviceClient.from(table).update({ moderation_status: status, moderation_notes: nullable(formData, "notes") }).eq("id", id);
+  const update = table === "guide_pages"
+    ? { is_published: status === "approved" }
+    : { moderation_status: status, moderation_notes: nullable(formData, "notes") };
+  await serviceClient.from(table).update(update).eq("id", id);
   revalidatePath("/admin");
   revalidatePath(`/admin/${table === "marketplace_items" ? "marketplace" : table}`);
   revalidatePath("/");
@@ -258,7 +265,8 @@ export async function createOffer(formData: FormData) {
     moderation_status: isAdmin ? "approved" : "pending",
     image_url: image?.url ?? null,
     document_url: document?.url ?? null,
-    document_name: document?.name ?? null
+    document_name: document?.name ?? null,
+    auto_delete_at: nullable(formData, "auto_delete_at")
   });
   revalidatePath("/admin/offers");
   revalidatePath("/offers");
@@ -273,12 +281,13 @@ export async function createAnnouncement(formData: FormData) {
   await supabase.from("announcements").insert({
     title: value(formData, "title"),
     body: value(formData, "body"),
-    university_id: roles.includes("super_admin") ? nullable(formData, "university_id") : profile?.university_id,
+    university_id: roles.includes("super_admin") ? nullable(formData, "university_id") : profile?.university_id ?? null,
     created_by: user.id,
     is_published: value(formData, "is_published") === "true",
     image_url: image?.url ?? null,
     document_url: document?.url ?? null,
-    document_name: document?.name ?? null
+    document_name: document?.name ?? null,
+    auto_delete_at: nullable(formData, "auto_delete_at")
   });
   revalidatePath("/admin/announcements");
   revalidatePath("/dashboard");
@@ -294,12 +303,13 @@ export async function createGuidePage(formData: FormData) {
     title: value(formData, "title"),
     category: value(formData, "category"),
     body: value(formData, "body"),
-    university_id: roles.includes("super_admin") ? nullable(formData, "university_id") : profile?.university_id,
+    university_id: roles.includes("super_admin") ? nullable(formData, "university_id") : profile?.university_id ?? null,
     created_by: user.id,
     is_published: value(formData, "is_published") === "true",
     image_url: image?.url ?? null,
     document_url: document?.url ?? null,
-    document_name: document?.name ?? null
+    document_name: document?.name ?? null,
+    auto_delete_at: nullable(formData, "auto_delete_at")
   });
   revalidatePath("/admin");
   revalidatePath("/guide");
@@ -373,7 +383,7 @@ export async function deleteUser(userId: string): Promise<{ ok: true } | { ok: f
 export async function deleteContent(table: string, id: string): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const { profile, roles } = await requireAdmin();
-    const allowedTables = ["events", "lessons", "materials", "marketplace_items", "offers"];
+    const allowedTables = ["events", "lessons", "materials", "marketplace_items", "offers", "announcements", "guide_pages"];
     if (!allowedTables.includes(table)) {
       return { ok: false, error: "Unsupported content type." };
     }
@@ -381,7 +391,7 @@ export async function deleteContent(table: string, id: string): Promise<{ ok: tr
     const serviceClient = createServiceRoleClient();
     const { data: record, error: readError } = await serviceClient
       .from(table)
-      .select("university_id,is_austria_wide")
+      .select("university_id")
       .eq("id", id)
       .maybeSingle();
 
@@ -403,40 +413,38 @@ export async function deleteContent(table: string, id: string): Promise<{ ok: tr
   }
 }
 
-export async function createSiteTerm(formData: FormData) {
-  const { supabase, roles } = await requireAdmin();
-  if (!roles.includes("super_admin")) throw new Error("Only super admins can manage terms.");
-  await supabase.from("site_terms").insert({
+export async function updateGuidePage(formData: FormData) {
+  const { supabase, profile, roles, user } = await requireAdmin();
+  const [image, document] = await Promise.all([
+    uploadOptionalAsset(supabase, "guide-assets", user.id, formData, "image", imageTypes),
+    uploadOptionalAsset(supabase, "guide-assets", user.id, formData, "document", documentTypes)
+  ]);
+  const updates: Record<string, string | boolean | null> = {
+    title: value(formData, "title"),
+    category: value(formData, "category"),
+    body: value(formData, "body"),
+    is_published: value(formData, "is_published") === "true",
+    university_id: roles.includes("super_admin") ? nullable(formData, "university_id") : profile?.university_id ?? null,
+    auto_delete_at: nullable(formData, "auto_delete_at")
+  };
+  if (image) updates.image_url = image.url;
+  if (document) {
+    updates.document_url = document.url;
+    updates.document_name = document.name;
+  }
+  await supabase.from("guide_pages").update(updates).eq("id", value(formData, "id"));
+  revalidatePath("/admin/guide");
+  revalidatePath("/guide");
+}
+
+export async function updateAppSetting(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  await supabase.from("app_settings").upsert({
     key: value(formData, "key"),
     value: value(formData, "value"),
-    description: nullable(formData, "description"),
-    category: nullable(formData, "category")
+    description: nullable(formData, "description")
   });
-  revalidatePath("/admin/terms");
-  revalidatePath("/dashboard");
-}
-
-export async function updateSiteTerm(formData: FormData) {
-  const { supabase, roles } = await requireAdmin();
-  if (!roles.includes("super_admin")) throw new Error("Only super admins can manage terms.");
-  await supabase.from("site_terms").update({
-    value: value(formData, "value"),
-    description: nullable(formData, "description"),
-    category: nullable(formData, "category")
-  }).eq("id", value(formData, "id"));
-  revalidatePath("/admin/terms");
-  revalidatePath("/dashboard");
-}
-
-export async function deleteSiteTerm(formData: FormData) {
-  const { supabase, roles } = await requireAdmin();
-  if (!roles.includes("super_admin")) throw new Error("Only super admins can manage terms.");
-  const protectedKeys = ["home_external_button_label", "home_external_button_url"];
-  if (protectedKeys.includes(value(formData, "key"))) {
-    throw new Error("This term is required and cannot be deleted.");
-  }
-  await supabase.from("site_terms").delete().eq("id", value(formData, "id"));
-  revalidatePath("/admin/terms");
+  revalidatePath("/admin/settings");
   revalidatePath("/dashboard");
 }
 

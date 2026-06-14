@@ -8,12 +8,14 @@ export default async function DashboardPage() {
   if (isAdmin) redirect("/admin");
 
   const universityId = profile?.university_id;
+  const now = new Date().toISOString();
   const [{ data: events }, { data: announcements }, { data: offers }, { data: siteTerms }] = await Promise.all([
     supabase
       .from("events")
       .select("id,title,starts_at,location")
       .eq("moderation_status", "approved")
       .eq("university_id", universityId)
+      .or(`auto_delete_at.is.null,auto_delete_at.gt.${now}`)
       .order("starts_at")
       .limit(3),
     supabase
@@ -21,22 +23,25 @@ export default async function DashboardPage() {
       .select("id,title,body,created_at,image_url,document_url,document_name")
       .eq("is_published", true)
       .or(`university_id.eq.${universityId},university_id.is.null`)
+      .or(`auto_delete_at.is.null,auto_delete_at.gt.${now}`)
       .order("created_at", { ascending: false })
       .limit(3),
     supabase
       .from("offers")
       .select("id,title,partner_name,discount_details")
+      .eq("moderation_status", "approved")
       .or(`university_id.eq.${universityId},is_austria_wide.eq.true`)
+      .or(`auto_delete_at.is.null,auto_delete_at.gt.${now}`)
       .order("created_at", { ascending: false })
       .limit(3),
     supabase
-      .from("site_terms")
+      .from("app_settings")
       .select("key,value")
-      .in("key", ["home_external_button_label", "home_external_button_url"])
+      .in("key", ["community_button_label", "community_button_url"])
   ]);
   const termMap = new Map((siteTerms ?? []).map((term) => [term.key, term.value]));
-  const externalLabel = termMap.get("home_external_button_label")?.trim() || "Community";
-  const externalUrl = termMap.get("home_external_button_url")?.trim() || "";
+  const externalLabel = termMap.get("community_button_label")?.trim() || "Community";
+  const externalUrl = termMap.get("community_button_url")?.trim() || "";
 
   const shortcuts = [
     { href: "/events", label: "Events", icon: CalendarDays },

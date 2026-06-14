@@ -1,4 +1,4 @@
-import { createGuidePage, createUniversity } from "@/app/actions";
+import { createUniversity } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
 import { Field, PageHeader, Panel, PrimaryButton, SelectField, TextArea } from "@/components/ui";
 
@@ -25,39 +25,6 @@ export default async function AdminUniversitiesPage() {
               </form>
             </Panel>
           ) : null}
-          <Panel>
-            <h2 className="font-semibold">Create guide page</h2>
-            <form action={createGuidePage} className="mt-4 space-y-4">
-              <Field label="Title" name="title" required />
-              <SelectField label="Category" name="category" defaultValue="bureaucracy">
-                <option value="bureaucracy">Bureaucracy</option>
-                <option value="required_documents">Required documents</option>
-                <option value="living_in_vienna">Living in Vienna</option>
-                <option value="student_life">Student life</option>
-                <option value="discounts_offers">Discounts/offers</option>
-              </SelectField>
-              <TextArea label="Body" name="body" required />
-              <label className="block">
-                <span className="text-sm font-medium">Image</span>
-                <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium">Document</span>
-                <input name="document" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />
-              </label>
-              <SelectField label="Published" name="is_published" defaultValue="true">
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </SelectField>
-              {roles.includes("super_admin") ? (
-                <SelectField label="University" name="university_id">
-                  <option value="">All universities</option>
-                  {universities?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                </SelectField>
-              ) : null}
-              <PrimaryButton>Create guide page</PrimaryButton>
-            </form>
-          </Panel>
         </div>
         <Panel>
           <h2 className="font-semibold">Universities</h2>

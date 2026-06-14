@@ -21,7 +21,10 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
   if (activeTab === "mine") {
     query = query.eq("created_by", user.id);
   } else {
-    query = query.eq("moderation_status", "approved").or(`university_id.eq.${profile?.university_id},is_austria_wide.eq.true`);
+    query = query
+      .eq("moderation_status", "approved")
+      .or(`university_id.eq.${profile?.university_id},is_austria_wide.eq.true`)
+      .or(`auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`);
   }
   const { data: offers } = await query;
 
@@ -64,6 +67,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
               <Field label="Discount details" name="discount_details" required />
               <Field label="Expiry date" name="expires_at" type="date" />
               <Field label="Link" name="link" type="url" />
+              <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
               <label className="block">
                 <span className="text-sm font-medium">Image</span>
                 <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />

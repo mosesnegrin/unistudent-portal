@@ -18,6 +18,7 @@ export default async function AdminAnnouncementsPage() {
           <form action={createAnnouncement} className="mt-4 space-y-4">
             <Field label="Title" name="title" required />
             <TextArea label="Body" name="body" required />
+            <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
             <label className="block">
               <span className="text-sm font-medium">Image</span>
               <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />

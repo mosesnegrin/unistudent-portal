@@ -20,6 +20,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
     .select("id,title,description,price_cents,category,profiles(full_name,email,phone)")
     .eq(activeTab === "mine" ? "seller_id" : "moderation_status", activeTab === "mine" ? user.id : "approved")
     .eq("university_id", profile?.university_id)
+    .or(activeTab === "mine" ? "id.not.is.null" : `auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
     .order("created_at", { ascending: false });
 
   return (
@@ -54,6 +55,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
               <TextArea label="Description" name="description" required />
               <Field label="Price in cents" name="price_cents" type="number" />
               <Field label="Category" name="category" required />
+              <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
               <PrimaryButton>Submit for approval</PrimaryButton>
             </form>
           </Panel>

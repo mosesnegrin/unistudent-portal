@@ -49,6 +49,7 @@ npm run dev
 5. Run [supabase/migrations/003_fix_admin_queries_and_content_visibility.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/003_fix_admin_queries_and_content_visibility.sql) after the second migration.
 6. Run [supabase/migrations/004_fix_visibility_users_rsvp_actions.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/004_fix_visibility_users_rsvp_actions.sql) after the third migration.
 7. Run [supabase/migrations/005_events_uploads_terms_footer.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/005_events_uploads_terms_footer.sql) after the fourth migration.
+8. Run [supabase/migrations/006_admin_guide_delete_autodelete_community_icons.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/006_admin_guide_delete_autodelete_community_icons.sql) after the fifth migration.
 
 These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, and role-based insert permissions.
 
@@ -172,9 +173,10 @@ In Supabase:
 - `/admin/marketplace`: moderate buy/sell posts
 - `/admin/offers`: add partner offers and discounts
 - `/admin/announcements`: publish official announcements
+- `/admin/guide`: manage guide material, uploads, visibility, and auto-delete deadlines
 - `/admin/reports`: review reports and flagged content
 - `/admin/universities`: add universities and guide pages
-- `/admin/terms`: super-admin-only site terms, labels, and dashboard external button settings
+- `/admin/settings`: app settings, including the dashboard external Community button
 
 Super admins see users and submitted content across all universities. University admins see only users and submitted content for their own university.
 
@@ -230,9 +232,11 @@ Action buttons:
 
 Announcements, offers, and guide pages support optional image and document uploads through Supabase Storage buckets `announcement-assets`, `offer-assets`, and `guide-assets`. Images display in cards/pages, and documents show a Download document button.
 
-The internal Community tab has been removed. The dashboard can show a customizable external-link button controlled by `/admin/terms` keys `home_external_button_label` and `home_external_button_url`. If the URL is empty, the button is hidden.
+The internal Community tab has been removed. The dashboard can show a customizable external-link button controlled in `/admin/settings` with `community_button_label` and `community_button_url`. If the URL is empty, normal users do not see the button.
 
 All student and admin pages include the footer: `Made by Moysis Negrin. 2026`.
+
+Admin-managed content supports an optional `auto_delete_at` deadline. Expired content is hidden from public/user pages while remaining manageable in admin views.
 
 Admins can add:
 

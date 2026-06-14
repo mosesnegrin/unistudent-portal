@@ -90,7 +90,8 @@ When a user is deleted:
 Use the admin dashboard:
 
 - Add universities in `/admin/universities`
-- Add guide pages in `/admin/universities`
+- Manage guide material in `/admin/guide`
+- Manage guide material in `/admin/guide`
 - Add offers in `/admin/offers`
 - Add announcements in `/admin/announcements`
 - Review reported content in `/admin/reports`
@@ -158,13 +159,17 @@ Announcements, offers, and guide pages support optional image and document uploa
 
 Images display inside cards/pages. Documents appear as Download document buttons.
 
-## Terms
+## App Settings
 
-Only super admins can access `/admin/terms`. Use it to edit site-wide values such as `home_external_button_label`, `home_external_button_url`, role labels, and guide category labels.
+Admins can access `/admin/settings` to edit app settings such as `community_button_label` and `community_button_url`.
 
-The internal Community tab has been removed. The dashboard external button appears only when `home_external_button_url` has a value.
+The internal Community tab has been removed. The dashboard external button appears for normal users only when `community_button_url` has a value.
 
 The app footer reads: `Made by Moysis Negrin. 2026`.
+
+## Auto-Delete Deadlines
+
+Admin-managed content can have an optional `auto_delete_at` deadline. Once the deadline is in the past, the content is hidden from user-facing pages. Admins can still review and delete it from admin pages.
 
 ## RLS Troubleshooting
 

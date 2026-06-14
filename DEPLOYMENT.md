@@ -9,6 +9,7 @@ Create a Supabase project, then run the SQL migrations in order:
 3. [supabase/migrations/003_fix_admin_queries_and_content_visibility.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/003_fix_admin_queries_and_content_visibility.sql)
 4. [supabase/migrations/004_fix_visibility_users_rsvp_actions.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/004_fix_visibility_users_rsvp_actions.sql)
 5. [supabase/migrations/005_events_uploads_terms_footer.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/005_events_uploads_terms_footer.sql)
+6. [supabase/migrations/006_admin_guide_delete_autodelete_community_icons.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/006_admin_guide_delete_autodelete_community_icons.sql)
 
 After the migration, add your first university in the `universities` table.
 
@@ -86,7 +87,7 @@ Moderation pages show pending, approved, and rejected content in one table. Pend
 
 Events can use internal RSVP, external registration links, organizer contact details, or no registration button.
 
-Migration `005` adds upload support for announcements, offers, and guide pages using `announcement-assets`, `offer-assets`, and `guide-assets`. It also adds `/admin/terms`, removes the internal Community navigation, and adds the app footer.
+Migration `005` adds upload support for announcements, offers, and guide pages using `announcement-assets`, `offer-assets`, and `guide-assets`. Migration `006` removes Terms usage, adds `/admin/guide`, adds `/admin/settings`, adds auto-delete fields, and keeps the app footer.
 
 If users or approved content do not appear, verify:
 

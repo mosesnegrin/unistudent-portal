@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { ManagementTable } from "@/components/admin";
 import { PageHeader } from "@/components/ui";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { CategoryLabel } from "@/components/category-icon";
 
 function provider(item: Record<string, unknown>, field: "full_name" | "email") {
   const profile = item.profiles as { full_name?: string | null; email?: string | null } | null;
@@ -18,7 +19,7 @@ export default async function AdminEventsPage() {
   const adminClient = createServiceRoleClient();
   let query = adminClient
     .from("events")
-    .select("id,title,description,starts_at,location,price_cents,capacity,moderation_status,created_by,university_id")
+    .select("id,title,description,starts_at,location,event_type,price_cents,capacity,moderation_status,created_by,university_id,auto_delete_at")
     .order("created_at", { ascending: false });
   if (!roles.includes("super_admin")) query = query.eq("university_id", profile?.university_id);
   const { data, error } = await query;
@@ -61,6 +62,7 @@ export default async function AdminEventsPage() {
           items={events}
           columns={[
             { key: "title", label: "Title/name" },
+            { key: "event_type", label: "Category", render: (item) => <CategoryLabel category={String(item.event_type ?? "")} /> },
             { key: "description", label: "Description" },
             { key: "starts_at", label: "Date/time", render: (item) => item.starts_at ? new Date(String(item.starts_at)).toLocaleString() : "" },
             { key: "location", label: "Location" },

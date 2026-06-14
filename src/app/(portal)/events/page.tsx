@@ -4,6 +4,7 @@ import { getSessionContext } from "@/lib/auth";
 import { canCreate } from "@/lib/permissions";
 import { ProviderInfo } from "@/components/provider-info";
 import { SubNav } from "@/components/subnav";
+import { CategoryLabel } from "@/components/category-icon";
 import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, StatusBadge, TextArea } from "@/components/ui";
 
 export default async function EventsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -35,6 +36,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
           .select(eventSelect)
           .eq("moderation_status", "approved")
           .eq("university_id", profile?.university_id)
+          .or(`auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
           .gte("starts_at", futureFrom)
           .order("starts_at")
       : { data: [] };
@@ -68,6 +70,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                       <a href={`/events/${String(event.id)}`} className="font-semibold underline-offset-4 hover:underline">{String(event.title)}</a>
                       <StatusBadge value={String(event.event_type)} />
                     </div>
+                    <p className="mt-1 text-sm text-muted"><CategoryLabel category={String(event.event_type)} /></p>
                     <p className="mt-1 text-sm text-muted">{new Date(String(event.starts_at)).toLocaleString()} · {String(event.location)}</p>
                     <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted">{String(event.description)}</p>
                     {String(event.registration_type ?? "internal_rsvp") === "internal_rsvp" ? (
@@ -119,6 +122,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
               <Field label="External registration URL" name="external_registration_url" type="url" />
               <Field label="Contact email" name="contact_email" type="email" />
               <Field label="Contact phone" name="contact_phone" />
+              <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
               <PrimaryButton>Submit for approval</PrimaryButton>
             </form>
           </Panel>
