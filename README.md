@@ -51,8 +51,9 @@ npm run dev
 6. Run [supabase/migrations/004_fix_visibility_users_rsvp_actions.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/004_fix_visibility_users_rsvp_actions.sql) after the third migration.
 7. Run [supabase/migrations/005_events_uploads_terms_footer.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/005_events_uploads_terms_footer.sql) after the fourth migration.
 8. Run [supabase/migrations/006_admin_guide_delete_autodelete_community_icons.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/006_admin_guide_delete_autodelete_community_icons.sql) after the fifth migration.
+9. Run [supabase/migrations/007_ui_format_profile_event_images.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/007_ui_format_profile_event_images.sql) after the sixth migration.
 
-These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, and role-based insert permissions.
+These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, event images, and role-based insert permissions.
 
 ## Create Your First University
 
@@ -209,6 +210,8 @@ Approved listings show provider information on the right side. The app shows nam
 
 Users can add an optional phone number in `/profile`. The email address is shown there as read-only account information and cannot be edited from the profile form.
 
+Normal users can change their password in `/profile`. Admin users do not see the password-change section.
+
 User-side content pages have tabs:
 
 - Events: All future events, My registered events, Create event when allowed
@@ -220,6 +223,10 @@ User-side content pages have tabs:
 Create/upload tabs are hidden unless the user has the correct role. If approved content does not show on user pages, confirm the item has `moderation_status = approved`, the user belongs to the same `university_id`, and the latest RLS migration has been run.
 
 Pages with categories also show a second filter bar under the main tabs. The app formats stored category keys automatically, so values like `university_event` and `external_partner_event` display as `University Event` and `External Partner Event`.
+
+Dates display as `DD/MM/YYYY`. Times display in 24-hour format as `HH:mm`.
+
+Money fields accept whole euros like `5` or euros and cents with a comma like `5,30`. Dot decimals such as `5.30` are rejected. Prices display as `€5` or `€5,30`.
 
 Event registration types:
 
@@ -236,6 +243,10 @@ Action buttons:
 - Offers: Open offer when a link exists, Contact provider when only contact details exist.
 
 Announcements, offers, and guide pages support optional image and document uploads through Supabase Storage buckets `announcement-assets`, `offer-assets`, and `guide-assets`. Images display in cards/pages, and documents show a Download document button.
+
+Events support optional image upload through the `event-assets` Supabase Storage bucket. Event images appear on event cards and event detail/admin event pages, but not in the dashboard upcoming-events preview.
+
+Forms and important actions show inline confirmation or error messages, including create/upload, profile save, password change, approve/reject, delete, RSVP, and cancel RSVP.
 
 The internal Community tab has been removed. The dashboard can show a customizable external-link button controlled in `/admin/settings` with `community_button_label` and `community_button_url`. If the URL is empty, normal users do not see the button.
 

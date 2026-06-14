@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
+import { formatEuro } from "@/lib/money";
 import { ManagementTable } from "@/components/admin";
 import { PageHeader } from "@/components/ui";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
@@ -35,7 +36,7 @@ export default async function AdminLessonsPage() {
             { key: "description", label: "Description" },
             { key: "tutor", label: "Tutor/created by", render: (item) => String(item.tutor_name ?? (provider(item, "full_name") || provider(item, "email"))) },
             { key: "created_by_email", label: "Created by email", render: (item) => provider(item, "email") },
-            { key: "price_cents", label: "Price/free", render: (item) => item.price_cents ? `EUR ${(Number(item.price_cents) / 100).toFixed(2)}` : "Free" },
+            { key: "price_cents", label: "Price/free", render: (item) => formatEuro(item.price_cents as string | number | null) },
             { key: "session_type", label: "Session type" },
             { key: "university", label: "University", render: university }
           ]}

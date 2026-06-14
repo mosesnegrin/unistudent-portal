@@ -1,4 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
+import { formatDateTime } from "@/lib/date-format";
+import { formatEuro } from "@/lib/money";
 import { ManagementTable } from "@/components/admin";
 import { PageHeader } from "@/components/ui";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
@@ -19,7 +21,7 @@ export default async function AdminEventsPage() {
   const adminClient = createServiceRoleClient();
   let query = adminClient
     .from("events")
-    .select("id,title,description,starts_at,location,event_type,price_cents,capacity,moderation_status,created_by,university_id,auto_delete_at")
+    .select("id,title,description,starts_at,location,event_type,price_cents,capacity,moderation_status,created_by,university_id,auto_delete_at,image_url")
     .order("created_at", { ascending: false });
   if (!roles.includes("super_admin")) query = query.eq("university_id", profile?.university_id);
   const { data, error } = await query;
@@ -62,16 +64,17 @@ export default async function AdminEventsPage() {
           items={events}
           columns={[
             { key: "title", label: "Title/name" },
+            { key: "image", label: "Image", render: (item) => item.image_url ? <img src={String(item.image_url)} alt="" className="h-14 w-20 rounded-lg object-cover" /> : "No image" },
             { key: "event_type", label: "Category", render: (item) => <CategoryLabel category={String(item.event_type ?? "")} /> },
             { key: "description", label: "Description" },
-            { key: "starts_at", label: "Date/time", render: (item) => item.starts_at ? new Date(String(item.starts_at)).toLocaleString() : "" },
+            { key: "starts_at", label: "Date/time", render: (item) => formatDateTime(String(item.starts_at ?? "")) },
             { key: "location", label: "Location" },
             { key: "created_by_name", label: "Created by", render: (item) => {
               const row = item.created_by ? providerById.get(String(item.created_by)) : null;
               return row?.full_name || row?.email || "Unknown user";
             } },
             { key: "created_by_email", label: "Created by email", render: (item) => item.created_by ? providerById.get(String(item.created_by))?.email ?? "No email" : "No email" },
-            { key: "price_cents", label: "Price/free", render: (item) => item.price_cents ? `EUR ${(Number(item.price_cents) / 100).toFixed(2)}` : "Free" },
+            { key: "price_cents", label: "Price/free", render: (item) => formatEuro(item.price_cents as string | number | null) },
             { key: "capacity", label: "Capacity" },
             { key: "university", label: "University", render: (item) => item.university_id ? universityById.get(String(item.university_id))?.name ?? "No university" : "No university" },
             {
@@ -90,7 +93,7 @@ export default async function AdminEventsPage() {
                             <p className="font-medium">{participant?.full_name || participant?.email || "Unknown user"}</p>
                             {participant?.email ? <p className="text-xs text-muted">{participant.email}</p> : null}
                             {participant?.phone ? <p className="text-xs text-muted">{participant.phone}</p> : null}
-                            <p className="text-xs text-muted">{rsvp.created_at ? new Date(String(rsvp.created_at)).toLocaleString() : ""}</p>
+                            <p className="text-xs text-muted">{formatDateTime(String(rsvp.created_at ?? ""))}</p>
                           </div>
                         );
                       }) : <p className="text-xs text-muted">No registered participants.</p>}

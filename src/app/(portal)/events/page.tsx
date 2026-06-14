@@ -1,7 +1,10 @@
 import { createEvent } from "@/app/actions";
 import { cancelRsvp, rsvpEvent } from "@/app/actions";
 import { getSessionContext } from "@/lib/auth";
+import { formatDateTime } from "@/lib/date-format";
+import { formatEuro, moneyInputPattern } from "@/lib/money";
 import { canCreate } from "@/lib/permissions";
+import { ActionForm } from "@/components/action-form";
 import { ProviderInfo } from "@/components/provider-info";
 import { CategoryFilter, SubNav } from "@/components/subnav";
 import { CategoryLabel } from "@/components/category-icon";
@@ -17,7 +20,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
     { href: "/events?tab=registered", label: "My registered events" },
     ...(canCreateEvent ? [{ href: "/events?tab=create", label: "Create event" }] : [])
   ];
-  const eventSelect = "id,title,description,starts_at,location,event_type,price_cents,moderation_status,registration_type,external_registration_url,contact_email,contact_phone,created_by";
+  const eventSelect = "id,title,description,starts_at,location,event_type,price_cents,moderation_status,registration_type,external_registration_url,contact_email,contact_phone,created_by,image_url";
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const futureFrom = today.toISOString();
@@ -64,7 +67,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
       <PageHeader title="Events" description="Browse approved events and submit new events for moderation." />
       <SubNav items={nav} active={activeTab} />
       {activeTab !== "create" ? <CategoryFilter basePath="/events" categories={categories} activeCategory={activeCategory} activeTab={activeTab} /> : null}
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+      <div className={activeTab === "create" ? "mx-auto max-w-2xl" : "grid gap-4 lg:grid-cols-[1fr_380px]"}>
         <div className="space-y-3">
           {activeTab !== "create" && filteredEvents?.length ? (
             filteredEvents.map((event) => (
@@ -73,13 +76,15 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                   <div>
                     <a href={`/events/${String(event.id)}`} className="text-base font-semibold underline-offset-4 hover:underline">{String(event.title)}</a>
                     <div className="mt-2"><CategoryLabel category={String(event.event_type)} /></div>
-                    <p className="mt-1 text-sm text-muted">{new Date(String(event.starts_at)).toLocaleString()} · {String(event.location)}</p>
+                    {event.image_url ? <img src={String(event.image_url)} alt="" className="mt-4 max-h-64 w-full rounded-xl object-cover" /> : null}
+                    <p className="mt-3 text-sm text-muted">{formatDateTime(String(event.starts_at))} · {String(event.location)}</p>
+                    <p className="mt-1 text-sm font-medium">{formatEuro(event.price_cents as string | number | null)}</p>
                     <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted">{String(event.description)}</p>
                     {String(event.registration_type ?? "internal_rsvp") === "internal_rsvp" ? (
-                      <form action={registeredIds.has(String(event.id)) ? cancelRsvp : rsvpEvent} className="mt-4">
+                      <ActionForm action={registeredIds.has(String(event.id)) ? cancelRsvp : rsvpEvent} successMessage={registeredIds.has(String(event.id)) ? "Registration cancelled." : "Registration completed."} className="mt-4">
                         <input type="hidden" name="event_id" value={String(event.id)} />
                         <PrimaryButton>{registeredIds.has(String(event.id)) ? "Cancel registration" : "Register"}</PrimaryButton>
-                      </form>
+                      </ActionForm>
                     ) : String(event.registration_type) === "external_link" && event.external_registration_url ? (
                       <a className="focus-ring mt-4 inline-flex min-h-11 items-center rounded-lg bg-ink px-4 text-sm font-medium text-white" href={String(event.external_registration_url)} target="_blank" rel="noreferrer">
                         Register externally
@@ -103,7 +108,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
         {activeTab === "create" && canCreateEvent ? (
           <Panel>
             <h2 className="font-semibold">Submit event</h2>
-            <form action={createEvent} className="mt-4 space-y-4">
+            <ActionForm action={createEvent} successMessage="Event submitted and waiting for approval." resetOnSuccess className="mt-4 space-y-4">
               <Field label="Title" name="title" required />
               <TextArea label="Description" name="description" required />
               <Field label="Date and time" name="starts_at" type="datetime-local" required />
@@ -114,7 +119,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                 <option value="external_partner_event">External partner event</option>
               </SelectField>
               <Field label="Capacity" name="capacity" type="number" />
-              <Field label="Price in cents" name="price_cents" type="number" placeholder="0 for free" />
+              <Field label="Price" name="price_cents" placeholder="5 or 5,30" pattern={moneyInputPattern} inputMode="decimal" title="Use whole euros like 5 or euros and cents like 5,30." />
               <SelectField label="Registration type" name="registration_type" defaultValue="internal_rsvp">
                 <option value="internal_rsvp">Internal RSVP</option>
                 <option value="external_link">External link</option>
@@ -125,8 +130,12 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
               <Field label="Contact email" name="contact_email" type="email" />
               <Field label="Contact phone" name="contact_phone" />
               <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
+              <label className="block">
+                <span className="text-sm font-medium text-ink">Image</span>
+                <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm shadow-sm" />
+              </label>
               <PrimaryButton>Submit for approval</PrimaryButton>
-            </form>
+            </ActionForm>
           </Panel>
         ) : null}
       </div>

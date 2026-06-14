@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { CalendarDays, HandCoins, MessagesSquare, NotebookTabs, ShoppingBag, TicketPercent } from "lucide-react";
 import { getSessionContext } from "@/lib/auth";
+import { formatDateTime } from "@/lib/date-format";
+import { firstName } from "@/lib/format";
 import { PageHeader, Panel, SecondaryLink } from "@/components/ui";
 
 export default async function DashboardPage() {
@@ -53,7 +55,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <PageHeader title="Dashboard" description="Your university updates, study resources, events, and student services in one place." />
+      <PageHeader title={`Welcome ${firstName(profile?.full_name, profile?.email)}`} description="Your university updates, study resources, events, and student services in one place." />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {shortcuts.map((item) => (
           <SecondaryLink key={item.href} href={item.href}>
@@ -81,7 +83,7 @@ export default async function DashboardPage() {
               {events.map((event) => (
                 <a key={event.id} href={`/events/${event.id}`} className="block rounded-lg bg-surface p-3">
                   <p className="font-medium">{event.title}</p>
-                  <p className="mt-1 text-sm text-muted">{new Date(event.starts_at).toLocaleString()}</p>
+                  <p className="mt-1 text-sm text-muted">{formatDateTime(event.starts_at)}</p>
                 </a>
               ))}
             </div>

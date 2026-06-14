@@ -19,11 +19,13 @@ export function ModerationActionButton({
   tone?: "approve" | "reject";
 }) {
   const router = useRouter();
+  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function run() {
     setError(null);
+    setMessage(null);
     const formData = new FormData();
     formData.set("table", table);
     formData.set("id", id);
@@ -34,9 +36,10 @@ export function ModerationActionButton({
       if (!result.ok) {
         setError(result.error);
         return;
-      }
-      router.refresh();
-    });
+        }
+        setMessage(status === "approved" ? "Approved successfully." : "Rejected successfully.");
+        router.refresh();
+      });
   }
 
   return (
@@ -51,6 +54,7 @@ export function ModerationActionButton({
       >
         {pending ? "Saving..." : children}
       </button>
+      {message ? <span className="max-w-48 text-xs text-emerald-700">{message}</span> : null}
       {error ? <span className="max-w-48 text-xs text-rose-700">{error}</span> : null}
     </span>
   );

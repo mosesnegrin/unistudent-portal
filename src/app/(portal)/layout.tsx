@@ -3,12 +3,19 @@ import { getSessionContext } from "@/lib/auth";
 import { getAdminNavigation, studentNavigation } from "@/lib/navigation";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const { profile, isAdmin, roles } = await getSessionContext();
+  const { supabase, profile, isAdmin, roles } = await getSessionContext();
+  const isSuperAdmin = roles.includes("super_admin");
+  const { data: university } = profile?.university_id
+    ? await supabase.from("universities").select("name").eq("id", profile.university_id).maybeSingle()
+    : { data: null };
+  const title = isSuperAdmin
+    ? "UniStudents - Admin Dashboard"
+    : `UniStudents - ${university?.name ?? "University"} Portal`;
 
   return (
     <AppShell
-      title={isAdmin ? "UniStudent Admin" : "UniStudent Portal"}
-      navigation={isAdmin ? getAdminNavigation(roles.includes("super_admin")) : studentNavigation}
+      title={title}
+      navigation={isAdmin ? getAdminNavigation(isSuperAdmin) : studentNavigation}
       userName={profile?.full_name}
     >
       {children}

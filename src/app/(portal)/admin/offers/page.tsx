@@ -1,5 +1,7 @@
 import { createOffer } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
+import { formatDate } from "@/lib/date-format";
+import { ActionForm } from "@/components/action-form";
 import { ManagementTable } from "@/components/admin";
 import { Field, PageHeader, Panel, PrimaryButton, SelectField, TextArea } from "@/components/ui";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
@@ -34,7 +36,7 @@ export default async function AdminOffersPage() {
       <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
         <Panel>
           <h2 className="font-semibold">Add offer</h2>
-          <form action={createOffer} className="mt-4 space-y-4">
+          <ActionForm action={createOffer} successMessage="Offer saved successfully." resetOnSuccess className="mt-4 space-y-4">
             <Field label="Title" name="title" required />
             <TextArea label="Description" name="description" required />
             <Field label="Partner name" name="partner_name" required />
@@ -61,7 +63,7 @@ export default async function AdminOffersPage() {
               </SelectField>
             ) : null}
             <PrimaryButton>Create offer</PrimaryButton>
-          </form>
+          </ActionForm>
         </Panel>
         <ManagementTable
           title="Offers"
@@ -73,7 +75,7 @@ export default async function AdminOffersPage() {
             { key: "partner_name", label: "Partner/offered by" },
             { key: "contact", label: "Email/contact", render: (item) => provider(item, "email") },
             { key: "discount_details", label: "Discount details" },
-            { key: "expires_at", label: "Expiry date" },
+            { key: "expires_at", label: "Expiry date", render: (item) => formatDate(String(item.expires_at ?? "")) },
             { key: "scope", label: "University/global", render: scope }
           ]}
         />

@@ -1,6 +1,7 @@
 import { createOffer } from "@/app/actions";
 import { getSessionContext } from "@/lib/auth";
 import { canCreate } from "@/lib/permissions";
+import { ActionForm } from "@/components/action-form";
 import { ProviderInfo } from "@/components/provider-info";
 import { SubNav } from "@/components/subnav";
 import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, TextArea } from "@/components/ui";
@@ -32,7 +33,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
     <>
       <PageHeader title="Offers" description="University-specific and Austria-wide student offers." />
       <SubNav items={nav} active={activeTab} />
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+      <div className={activeTab === "create" ? "mx-auto max-w-2xl" : "grid gap-4 lg:grid-cols-[1fr_380px]"}>
         <div className="space-y-3">
         {activeTab !== "create" && offers?.length ? offers.map((offer) => (
           <Panel key={offer.id}>
@@ -60,7 +61,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
         {activeTab === "create" && canCreateOffer ? (
           <Panel>
             <h2 className="font-semibold">Add offer</h2>
-            <form action={createOffer} className="mt-4 space-y-4">
+            <ActionForm action={createOffer} successMessage="Offer saved successfully." resetOnSuccess className="mt-4 space-y-4">
               <Field label="Title" name="title" required />
               <TextArea label="Description" name="description" required />
               <Field label="Partner name" name="partner_name" required />
@@ -81,7 +82,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
                 <option value="true">Yes</option>
               </SelectField>
               <PrimaryButton>Submit offer</PrimaryButton>
-            </form>
+            </ActionForm>
           </Panel>
         ) : null}
       </div>

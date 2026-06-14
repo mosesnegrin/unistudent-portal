@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
+import { firstName } from "@/lib/format";
 import { PageHeader, Panel, SecondaryLink } from "@/components/ui";
 
 export default async function AdminPage() {
@@ -34,7 +35,7 @@ export default async function AdminPage() {
 
   return (
     <>
-      <PageHeader title="Admin dashboard" description="Manage users, roles, moderation, official content, offers, reports, and universities." />
+      <PageHeader title={`Welcome ${firstName(profile?.full_name, profile?.email)}`} description="Manage users, roles, moderation, official content, offers, reports, and universities." />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map(([label, count]) => (
           <Panel key={label}>

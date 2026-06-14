@@ -1,6 +1,8 @@
 import { createMaterial, requestMaterial } from "@/app/actions";
 import { getSessionContext } from "@/lib/auth";
+import { formatEuro, moneyInputPattern } from "@/lib/money";
 import { canCreate } from "@/lib/permissions";
+import { ActionForm } from "@/components/action-form";
 import { ProviderInfo } from "@/components/provider-info";
 import { SubNav } from "@/components/subnav";
 import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, TextArea } from "@/components/ui";
@@ -44,7 +46,7 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="Notes and materials" description="Browse approved study materials or submit your own notes for moderation." />
       <SubNav items={nav} active={activeTab} />
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+      <div className={activeTab === "create" ? "mx-auto max-w-2xl" : "grid gap-4 lg:grid-cols-[1fr_380px]"}>
         <div className="space-y-3">
           {activeTab !== "create" && materials?.length ? materials.map((material) => (
             <Panel key={String(material.id)}>
@@ -53,7 +55,7 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
                   <h2 className="font-semibold">{String(material.title)}</h2>
                   <p className="mt-1 text-sm text-muted">{String(material.course_name)}</p>
                   <p className="mt-3 text-sm leading-6 text-muted">{String(material.description)}</p>
-                  <p className="mt-3 text-sm">{material.is_free ? "Free" : `EUR ${((Number(material.price_cents) || 0) / 100).toFixed(2)}`}</p>
+                  <p className="mt-3 text-sm">{material.is_free ? "Free" : formatEuro(material.price_cents as string | number | null)}</p>
                 </div>
                 <ProviderInfo provider={material.profiles as never} label="Offered by" />
               </div>
@@ -61,11 +63,11 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
                 material.is_free && material.file_path && signedUrls.get(String(material.file_path)) ? (
                   <a className="focus-ring mt-4 inline-flex min-h-11 items-center rounded-lg bg-ink px-4 text-sm font-medium text-white" href={signedUrls.get(String(material.file_path))} target="_blank" rel="noreferrer">Download</a>
                 ) : material.is_free ? (
-                  <form action={requestMaterial} className="mt-4 space-y-3">
+                  <ActionForm action={requestMaterial} successMessage="Material request sent." className="mt-4 space-y-3">
                     <input type="hidden" name="material_id" value={String(material.id)} />
                     <TextArea label="Request message" name="message" />
                     <PrimaryButton>Request material</PrimaryButton>
-                  </form>
+                  </ActionForm>
                 ) : (
                   <details className="mt-4 rounded-lg bg-surface p-3 text-sm">
                     <summary className="cursor-pointer font-medium">Contact seller</summary>
@@ -79,7 +81,7 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
         {activeTab === "create" && canCreateMaterial ? (
           <Panel>
             <h2 className="font-semibold">Upload material</h2>
-            <form action={createMaterial} className="mt-4 space-y-4">
+            <ActionForm action={createMaterial} successMessage="Material uploaded and waiting for approval." resetOnSuccess className="mt-4 space-y-4">
               <Field label="Course name" name="course_name" required />
               <Field label="Title" name="title" required />
               <TextArea label="Description" name="description" required />
@@ -91,10 +93,10 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
                 <option value="true">Free</option>
                 <option value="false">Paid</option>
               </SelectField>
-              <Field label="Price in cents" name="price_cents" type="number" />
+              <Field label="Price" name="price_cents" placeholder="5 or 5,30" pattern={moneyInputPattern} inputMode="decimal" title="Use whole euros like 5 or euros and cents like 5,30." />
               <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
               <PrimaryButton>Submit for approval</PrimaryButton>
-            </form>
+            </ActionForm>
           </Panel>
         ) : null}
       </div>

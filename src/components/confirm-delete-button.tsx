@@ -15,12 +15,14 @@ export function ConfirmDeleteButton({
   label: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
   function confirm() {
     setError(null);
+    setMessage(null);
     startTransition(async () => {
       const result = await deleteContent(table, id);
       if (!result.ok) {
@@ -28,6 +30,7 @@ export function ConfirmDeleteButton({
         return;
       }
       setOpen(false);
+      setMessage("Deleted successfully.");
       router.refresh();
     });
   }
@@ -42,6 +45,7 @@ export function ConfirmDeleteButton({
         <Trash2 size={15} />
         Delete
       </button>
+      {message ? <span className="block max-w-44 text-xs text-emerald-700">{message}</span> : null}
       {open ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4">
           <div className="w-full max-w-md rounded-lg border border-line bg-white p-5 shadow-soft">

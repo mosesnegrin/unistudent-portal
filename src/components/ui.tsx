@@ -71,7 +71,10 @@ export function Field({
   type = "text",
   required = false,
   placeholder,
-  defaultValue
+  defaultValue,
+  pattern,
+  inputMode,
+  title
 }: {
   label: string;
   name: string;
@@ -79,6 +82,9 @@ export function Field({
   required?: boolean;
   placeholder?: string;
   defaultValue?: string | number | null;
+  pattern?: string;
+  inputMode?: "text" | "search" | "email" | "tel" | "url" | "none" | "numeric" | "decimal";
+  title?: string;
 }) {
   return (
     <label className="block">
@@ -89,6 +95,9 @@ export function Field({
         required={required}
         placeholder={placeholder}
         defaultValue={defaultValue ?? undefined}
+        pattern={pattern}
+        inputMode={inputMode}
+        title={title}
         className="focus-ring mt-2 min-h-11 w-full rounded-xl border border-line bg-white px-3 text-sm shadow-sm"
       />
     </label>

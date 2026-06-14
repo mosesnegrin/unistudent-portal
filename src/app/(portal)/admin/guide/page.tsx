@@ -1,5 +1,7 @@
 import { createGuidePage, updateGuidePage } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
+import { formatDate, formatDateTime } from "@/lib/date-format";
+import { ActionForm } from "@/components/action-form";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { CategoryLabel } from "@/components/category-icon";
 import { Field, PageHeader, Panel, PrimaryButton, SelectField, StatusBadge, TextArea } from "@/components/ui";
@@ -25,7 +27,7 @@ function GuideForm({
 }) {
   const action = item ? updateGuidePage : createGuidePage;
   return (
-    <form action={action} className="space-y-4">
+    <ActionForm action={action} successMessage={item ? "Guide material saved successfully." : "Guide material created successfully."} resetOnSuccess={!item} className="space-y-4">
       {item ? <input type="hidden" name="id" value={String(item.id)} /> : null}
       <Field label="Title" name="title" defaultValue={String(item?.title ?? "")} required />
       <SelectField label="Category" name="category" defaultValue={String(item?.category ?? "bureaucracy")}>
@@ -58,7 +60,7 @@ function GuideForm({
         <input name="document" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm" />
       </label>
       <PrimaryButton>{item ? "Save guide material" : "Create guide material"}</PrimaryButton>
-    </form>
+    </ActionForm>
   );
 }
 
@@ -98,12 +100,12 @@ export default async function AdminGuidePage() {
                     <div>
                       <h3 className="font-semibold">{String(record.title)}</h3>
                       <p className="mt-1 text-sm text-muted"><CategoryLabel category={String(record.category)} /> · {scope(record)}</p>
-                      <p className="mt-2 text-sm text-muted">Created by {creator(record) || "Unknown"} · {record.created_at ? new Date(String(record.created_at)).toLocaleDateString() : ""}</p>
+                      <p className="mt-2 text-sm text-muted">Created by {creator(record) || "Unknown"} · {formatDate(String(record.created_at ?? ""))}</p>
                       <div className="mt-2 flex gap-2">
                         <StatusBadge value={record.is_published ? "approved" : "rejected"} />
                         {expired ? <StatusBadge value="expired" /> : null}
                       </div>
-                      {record.auto_delete_at ? <p className="mt-2 text-sm text-muted">Auto-delete: {new Date(String(record.auto_delete_at)).toLocaleString()}</p> : null}
+                      {record.auto_delete_at ? <p className="mt-2 text-sm text-muted">Auto-delete: {formatDateTime(String(record.auto_delete_at))}</p> : null}
                     </div>
                     <ConfirmDeleteButton table="guide_pages" id={String(record.id)} label={String(record.title)} />
                   </div>

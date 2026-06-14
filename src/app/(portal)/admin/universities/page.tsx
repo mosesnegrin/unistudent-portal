@@ -1,6 +1,7 @@
 import { createUniversity } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
-import { Field, PageHeader, Panel, PrimaryButton, SelectField, TextArea } from "@/components/ui";
+import { ActionForm } from "@/components/action-form";
+import { Field, PageHeader, Panel, PrimaryButton, SelectField } from "@/components/ui";
 
 export default async function AdminUniversitiesPage() {
   const { supabase, roles } = await requireAdmin();
@@ -14,7 +15,7 @@ export default async function AdminUniversitiesPage() {
           {roles.includes("super_admin") ? (
             <Panel>
               <h2 className="font-semibold">Add university</h2>
-              <form action={createUniversity} className="mt-4 space-y-4">
+              <ActionForm action={createUniversity} successMessage="University created successfully." resetOnSuccess className="mt-4 space-y-4">
                 <Field label="Name" name="name" required />
                 <Field label="Allowed email domain" name="allowed_email_domain" placeholder="lbs.ac.at" required />
                 <SelectField label="Active" name="is_active" defaultValue="true">
@@ -22,7 +23,7 @@ export default async function AdminUniversitiesPage() {
                   <option value="false">No</option>
                 </SelectField>
                 <PrimaryButton>Create university</PrimaryButton>
-              </form>
+              </ActionForm>
             </Panel>
           ) : null}
         </div>

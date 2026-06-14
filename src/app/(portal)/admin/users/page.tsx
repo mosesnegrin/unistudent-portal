@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
+import { formatDate } from "@/lib/date-format";
 import { PageHeader, Panel, SelectField } from "@/components/ui";
 import { RoleManager } from "@/components/admin";
 import { DeleteUserButton } from "@/components/delete-user-button";
@@ -83,7 +84,7 @@ export default async function AdminUsersPage({
                     <td className="py-3 pr-3">{universityName}</td>
                     <td className="py-3 pr-3">{user.phone ?? ""}</td>
                     <td className="py-3 pr-3"><RoleManager userId={user.id} roles={assigned} /></td>
-                    <td className="py-3 pr-3">{user.created_at ? new Date(user.created_at).toLocaleDateString() : ""}</td>
+                    <td className="py-3 pr-3">{formatDate(user.created_at)}</td>
                     {roles.includes("super_admin") ? (
                       <td className="py-3 pr-3">
                         <DeleteUserButton

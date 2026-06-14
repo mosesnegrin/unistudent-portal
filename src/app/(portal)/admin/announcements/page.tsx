@@ -1,5 +1,7 @@
 import { createAnnouncement } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
+import { formatDate } from "@/lib/date-format";
+import { ActionForm } from "@/components/action-form";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { Field, PageHeader, Panel, PrimaryButton, SelectField, StatusBadge, TextArea } from "@/components/ui";
@@ -23,7 +25,7 @@ export default async function AdminAnnouncementsPage() {
       <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
         <Panel>
           <h2 className="font-semibold">Create announcement</h2>
-          <form action={createAnnouncement} className="mt-4 space-y-4">
+          <ActionForm action={createAnnouncement} successMessage="Announcement published successfully." resetOnSuccess className="mt-4 space-y-4">
             <Field label="Title" name="title" required />
             <TextArea label="Body" name="body" required />
             <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
@@ -46,7 +48,7 @@ export default async function AdminAnnouncementsPage() {
               </SelectField>
             ) : null}
             <PrimaryButton>Create announcement</PrimaryButton>
-          </form>
+          </ActionForm>
         </Panel>
         <Panel>
           <h2 className="font-semibold">Announcements</h2>
@@ -59,7 +61,7 @@ export default async function AdminAnnouncementsPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="font-medium">{item.title}</p>
-                    <p className="mt-1 text-sm text-muted">{university?.name ?? "All universities"} · {new Date(item.created_at).toLocaleDateString()}</p>
+                    <p className="mt-1 text-sm text-muted">{university?.name ?? "All universities"} · {formatDate(item.created_at)}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <StatusBadge value={item.is_published ? "approved" : "draft"} />
                       {expired ? <StatusBadge value="expired" /> : null}

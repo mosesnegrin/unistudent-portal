@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CategoryLabel } from "@/components/category-icon";
+import { CategoryIcon } from "@/components/category-icon";
+import { formatCategoryLabel } from "@/lib/format";
 
 export function SubNav({ items, active }: { items: Array<{ href: string; label: string }>; active: string }) {
   return (
@@ -57,11 +58,14 @@ export function CategoryFilter({
         <Link
           key={category}
           href={hrefFor(category)}
-          className={`focus-ring rounded-full transition ${
-            activeCategory === category ? "ring-2 ring-ink/20" : "opacity-85 hover:opacity-100"
+          className={`focus-ring inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm font-medium transition ${
+            activeCategory === category
+              ? "border-ink bg-ink text-white shadow-sm"
+              : "border-line bg-white text-muted hover:border-ink/30 hover:text-ink"
           }`}
         >
-          <CategoryLabel category={category} />
+          <CategoryIcon category={category} />
+          {formatCategoryLabel(category)}
         </Link>
       ))}
     </nav>

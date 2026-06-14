@@ -108,6 +108,8 @@ Creation permissions:
 
 Approved listings show provider/contact information. Users can add an optional phone number in `/profile`; phone is shown publicly only when completed. Profile email is read-only and cannot be changed from the profile form. Admin-created listings show `Official / Admin` with the admin email when available.
 
+Normal users can change their password from `/profile`. Admin users do not see the password-change section.
+
 ## Moderation Workflow
 
 Admin moderation pages are table-based:
@@ -139,6 +141,10 @@ Create/upload tabs are hidden unless the user has the correct role.
 
 Pages with categories show a second filter bar below the main tabs. Stored category keys are formatted automatically, so `required_documents` appears as `Required Documents` and `external_partner_event` appears as `External Partner Event`.
 
+Dates display as `DD/MM/YYYY`. Times display in 24-hour `HH:mm` format.
+
+Money fields accept whole euros like `5` or euros and cents with a comma like `5,30`. Dot decimals such as `5.30` are rejected. Prices display as `€5` or `€5,30`.
+
 Event registration types:
 
 - Internal RSVP: Register and Cancel registration happen in the portal.
@@ -161,6 +167,10 @@ Button meanings:
 Announcements, offers, and guide pages support optional image and document uploads. The app uses Supabase Storage buckets `announcement-assets`, `offer-assets`, and `guide-assets`.
 
 Images display inside cards/pages. Documents appear as Download document buttons.
+
+Events support optional image uploads through the `event-assets` bucket. Event images show on event cards, event detail pages, and admin event management, but not in the dashboard upcoming-events preview.
+
+Forms and important actions show confirmation or error messages, including profile save, password change, create/upload, approve/reject, delete, RSVP, and cancel RSVP.
 
 ## App Settings
 

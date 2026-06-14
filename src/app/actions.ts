@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSessionContext, requireAdmin } from "@/lib/auth";
 import { canCreate, noCreatePermissionMessage } from "@/lib/permissions";
+import { parseEuroInput } from "@/lib/money";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import type { ModerationStatus, UserRole } from "@/lib/types";
 
@@ -20,6 +21,10 @@ function nullable(formData: FormData, key: string) {
 function numberOrNull(formData: FormData, key: string) {
   const item = value(formData, key);
   return item.length ? Number(item) : null;
+}
+
+function moneyOrNull(formData: FormData, key: string) {
+  return parseEuroInput(value(formData, key));
 }
 
 const imageTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -49,6 +54,7 @@ async function uploadOptionalAsset(
 export async function createEvent(formData: FormData) {
   const { supabase, user, profile, roles } = await getSessionContext();
   if (!canCreate(roles, "events")) throw new Error(noCreatePermissionMessage("event"));
+  const image = await uploadOptionalAsset(supabase, "event-assets", user.id, formData, "image", imageTypes);
   await supabase.from("events").insert({
     title: value(formData, "title"),
     description: value(formData, "description"),
@@ -57,12 +63,13 @@ export async function createEvent(formData: FormData) {
     university_id: profile?.university_id,
     event_type: value(formData, "event_type"),
     capacity: numberOrNull(formData, "capacity"),
-    price_cents: numberOrNull(formData, "price_cents"),
+    price_cents: moneyOrNull(formData, "price_cents"),
     registration_type: value(formData, "registration_type") || "internal_rsvp",
     external_registration_url: nullable(formData, "external_registration_url"),
     contact_email: nullable(formData, "contact_email"),
     contact_phone: nullable(formData, "contact_phone"),
     auto_delete_at: nullable(formData, "auto_delete_at"),
+    image_url: image?.url ?? null,
     created_by: user.id,
     moderation_status: "pending"
   });
@@ -77,7 +84,7 @@ export async function createLesson(formData: FormData) {
     tutor_name: value(formData, "tutor_name"),
     grade_background: nullable(formData, "grade_background"),
     description: value(formData, "description"),
-    price_cents: numberOrNull(formData, "price_cents"),
+    price_cents: moneyOrNull(formData, "price_cents"),
     session_type: value(formData, "session_type"),
     availability: nullable(formData, "availability"),
     auto_delete_at: nullable(formData, "auto_delete_at"),
@@ -108,7 +115,7 @@ export async function createMaterial(formData: FormData) {
     description: value(formData, "description"),
     file_path: filePath,
     is_free: value(formData, "is_free") === "true",
-    price_cents: numberOrNull(formData, "price_cents"),
+    price_cents: moneyOrNull(formData, "price_cents"),
     auto_delete_at: nullable(formData, "auto_delete_at"),
     university_id: profile?.university_id,
     created_by: user.id,
@@ -123,7 +130,7 @@ export async function createMarketplaceItem(formData: FormData) {
   await supabase.from("marketplace_items").insert({
     title: value(formData, "title"),
     description: value(formData, "description"),
-    price_cents: numberOrNull(formData, "price_cents"),
+    price_cents: moneyOrNull(formData, "price_cents"),
     category: value(formData, "category"),
     auto_delete_at: nullable(formData, "auto_delete_at"),
     university_id: profile?.university_id,
@@ -139,27 +146,9 @@ export async function updateProfile(formData: FormData) {
     .from("profiles")
     .update({
       full_name: value(formData, "full_name"),
-      phone: nullable(formData, "phone"),
-      bio: nullable(formData, "bio")
+      phone: nullable(formData, "phone")
     })
     .eq("id", user.id);
-
-  const interests = value(formData, "interests")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  await supabase.from("user_interests").delete().eq("user_id", user.id);
-  for (const name of interests) {
-    const { data: interest } = await supabase
-      .from("interests")
-      .upsert({ name }, { onConflict: "name" })
-      .select("id")
-      .single();
-    if (interest) {
-      await supabase.from("user_interests").insert({ user_id: user.id, interest_id: interest.id });
-    }
-  }
 
   revalidatePath("/profile");
 }

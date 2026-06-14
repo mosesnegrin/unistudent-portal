@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
+import { formatEuro } from "@/lib/money";
 import { ManagementTable } from "@/components/admin";
 import { CategoryLabel } from "@/components/category-icon";
 import { PageHeader } from "@/components/ui";
@@ -34,7 +35,7 @@ export default async function AdminMarketplacePage() {
           columns={[
             { key: "title", label: "Title" },
             { key: "description", label: "Description" },
-            { key: "price_cents", label: "Price", render: (item) => item.price_cents ? `EUR ${(Number(item.price_cents) / 100).toFixed(2)}` : "Free" },
+            { key: "price_cents", label: "Price", render: (item) => formatEuro(item.price_cents as string | number | null) },
             { key: "category", label: "Category", render: (item) => <CategoryLabel category={String(item.category ?? "")} /> },
             { key: "created_by_name", label: "Created by", render: (item) => provider(item, "full_name") || provider(item, "email") },
             { key: "created_by_email", label: "Created by email", render: (item) => provider(item, "email") },

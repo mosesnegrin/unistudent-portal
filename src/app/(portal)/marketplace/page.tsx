@@ -1,6 +1,8 @@
 import { createMarketplaceItem } from "@/app/actions";
 import { getSessionContext } from "@/lib/auth";
+import { formatEuro, moneyInputPattern } from "@/lib/money";
 import { canCreate } from "@/lib/permissions";
+import { ActionForm } from "@/components/action-form";
 import { CategoryLabel } from "@/components/category-icon";
 import { ProviderInfo } from "@/components/provider-info";
 import { CategoryFilter, SubNav } from "@/components/subnav";
@@ -31,7 +33,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
       <PageHeader title="Marketplace" description="Buy and sell student items after moderation approval." />
       <SubNav items={nav} active={activeTab} />
       {activeTab !== "create" ? <CategoryFilter basePath="/marketplace" categories={categories} activeCategory={activeCategory} activeTab={activeTab} /> : null}
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+      <div className={activeTab === "create" ? "mx-auto max-w-2xl" : "grid gap-4 lg:grid-cols-[1fr_380px]"}>
         <div className="space-y-3">
           {activeTab !== "create" && filteredItems?.length ? filteredItems.map((item) => (
             <Panel key={item.id}>
@@ -40,7 +42,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
                   <h2 className="text-base font-semibold">{item.title}</h2>
                   <div className="mt-2"><CategoryLabel category={item.category} /></div>
                   <p className="mt-3 text-sm leading-6 text-muted">{item.description}</p>
-                  <p className="mt-3 text-sm font-medium">{item.price_cents ? `EUR ${(item.price_cents / 100).toFixed(2)}` : "Free"}</p>
+                  <p className="mt-3 text-sm font-medium">{formatEuro(item.price_cents)}</p>
                 </div>
                 <ProviderInfo provider={item.profiles as never} label="Posted by" />
               </div>
@@ -54,14 +56,14 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
         {activeTab === "create" && canCreateItem ? (
           <Panel>
             <h2 className="font-semibold">Post item</h2>
-            <form action={createMarketplaceItem} className="mt-4 space-y-4">
+            <ActionForm action={createMarketplaceItem} successMessage="Marketplace item submitted and waiting for approval." resetOnSuccess className="mt-4 space-y-4">
               <Field label="Title" name="title" required />
               <TextArea label="Description" name="description" required />
-              <Field label="Price in cents" name="price_cents" type="number" />
+              <Field label="Price" name="price_cents" placeholder="5 or 5,30" pattern={moneyInputPattern} inputMode="decimal" title="Use whole euros like 5 or euros and cents like 5,30." />
               <Field label="Category" name="category" required />
               <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
               <PrimaryButton>Submit for approval</PrimaryButton>
-            </form>
+            </ActionForm>
           </Panel>
         ) : null}
       </div>
