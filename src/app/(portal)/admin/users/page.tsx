@@ -15,6 +15,7 @@ export default async function AdminUsersPage({
   const adminClient = createServiceRoleClient();
   const { data: universities } = await adminClient.from("universities").select("id,name").order("name");
   const universityId = isPlatformAdmin ? university || effectiveUniversityId || undefined : profile?.university_id;
+  const canDeleteUsers = isPlatformAdmin || roles.includes("super_admin");
   let query = adminClient
     .from("profiles")
     .select("id,full_name,email,phone,is_active,university_id,created_at,universities(name)")
@@ -69,7 +70,7 @@ export default async function AdminUsersPage({
                 <th className="py-2 pr-3 font-medium">Phone</th>
                 <th className="py-2 pr-3 font-medium">Roles</th>
                 <th className="py-2 pr-3 font-medium">Created</th>
-                {isPlatformAdmin ? <th className="py-2 pr-3 font-medium">Delete</th> : null}
+                {canDeleteUsers ? <th className="py-2 pr-3 font-medium">Delete</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -83,9 +84,9 @@ export default async function AdminUsersPage({
                     <td className="py-3 pr-3">{user.email}</td>
                     <td className="py-3 pr-3">{universityName}</td>
                     <td className="py-3 pr-3">{user.phone ?? ""}</td>
-                    <td className="py-3 pr-3"><RoleManager userId={user.id} roles={assigned} /></td>
+                    <td className="py-3 pr-3"><RoleManager userId={user.id} roles={assigned} canManagePlatformRoles={isPlatformAdmin} /></td>
                     <td className="py-3 pr-3">{formatDate(user.created_at)}</td>
-                    {isPlatformAdmin ? (
+                    {canDeleteUsers ? (
                       <td className="py-3 pr-3">
                         <DeleteUserButton
                           userId={user.id}

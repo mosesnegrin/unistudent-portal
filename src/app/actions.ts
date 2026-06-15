@@ -29,7 +29,11 @@ function moneyOrNull(formData: FormData, key: string) {
 }
 
 function isPlatformAdmin(roles: UserRole[]) {
-  return roles.includes("super_admin") || roles.includes("company");
+  return roles.includes("company");
+}
+
+function canManageUniversity(roles: UserRole[], profileUniversityId: string | null | undefined, universityId: string | null | undefined) {
+  return roles.includes("company") || Boolean(universityId && profileUniversityId === universityId && (roles.includes("super_admin") || roles.includes("university_admin")));
 }
 
 const imageTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -239,7 +243,7 @@ export async function moderateContent(formData: FormData): Promise<{ ok: true } 
 
     if (readError) return { ok: false, error: readError.message };
     if (!record) return { ok: false, error: "This item no longer exists or was already removed." };
-    if (!isPlatformAdmin(roles) && record.university_id !== profile?.university_id) {
+    if (!canManageUniversity(roles, profile?.university_id, record.university_id)) {
       return { ok: false, error: "You can only manage content for your university." };
     }
 
@@ -273,7 +277,7 @@ export async function createOffer(formData: FormData) {
   const { supabase, profile, roles, user } = await getSessionContext();
   if (!canCreate(roles, "offers")) throw new Error(noCreatePermissionMessage("offer"));
   const isPlatform = isPlatformAdmin(roles);
-  const isAdmin = isPlatform || roles.includes("university_admin");
+  const isAdmin = isPlatform || roles.includes("university_admin") || roles.includes("super_admin");
   const isAustriaWide = isPlatform && value(formData, "is_austria_wide") === "true";
   const [image, document] = await Promise.all([
     uploadOptionalAsset(supabase, "offer-assets", user.id, formData, "image", imageTypes),
@@ -344,7 +348,7 @@ export async function createGuidePage(formData: FormData) {
 
 export async function createUniversity(formData: FormData) {
   const { supabase, roles } = await requireAdmin();
-  if (!isPlatformAdmin(roles)) throw new Error("Only platform admins can create universities.");
+  if (!isPlatformAdmin(roles)) throw new Error("Only company admins can create universities.");
   await supabase.from("universities").insert({
     name: value(formData, "name"),
     allowed_email_domain: value(formData, "allowed_email_domain").toLowerCase(),
@@ -355,7 +359,7 @@ export async function createUniversity(formData: FormData) {
 
 export async function toggleUniversityStatus(formData: FormData) {
   const { roles } = await requireAdmin();
-  if (!isPlatformAdmin(roles)) throw new Error("Only platform admins can update universities.");
+  if (!isPlatformAdmin(roles)) throw new Error("Only company admins can update universities.");
   const serviceClient = createServiceRoleClient();
   await serviceClient
     .from("universities")
@@ -384,20 +388,51 @@ export async function updateUniversityCommunity(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
-export async function ensureCompanyRole() {
-  const { supabase } = await getSessionContext();
+export async function detectAuthTarget(email: string): Promise<
+  | { ok: true; type: "company"; universityId: null; isActive: true }
+  | { ok: true; type: "university"; universityId: string; isActive: boolean }
+  | { ok: false; reason: "unregistered" }
+> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (isCompanyEmail(normalizedEmail)) {
+    return { ok: true, type: "company", universityId: null, isActive: true };
+  }
+
+  const domain = normalizedEmail.split("@").pop() ?? "";
+  const serviceClient = createServiceRoleClient();
+  const { data: universities } = await serviceClient
+    .from("universities")
+    .select("id,allowed_email_domain,is_active");
+
+  const match = (universities ?? []).find((university) => {
+    const allowedDomain = String(university.allowed_email_domain).trim().toLowerCase();
+    return domain === allowedDomain || domain === `admin.${allowedDomain}`;
+  });
+
+  if (!match) return { ok: false, reason: "unregistered" };
+  return { ok: true, type: "university", universityId: match.id, isActive: Boolean(match.is_active) };
+}
+
+export async function finalizeAuthenticatedProfile(fullName?: string) {
+  const supabase = await (await import("@/lib/supabase/server")).createClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
-  if (!user?.email || !isCompanyEmail(user.email)) return;
+  if (!user?.email) return;
 
+  const target = await detectAuthTarget(user.email);
+  if (!target.ok || !target.isActive) return;
   const serviceClient = createServiceRoleClient();
-  const [{ data: profile }, { data: role }] = await Promise.all([
-    serviceClient.from("profiles").select("id").eq("id", user.id).maybeSingle(),
-    serviceClient.from("roles").select("id").eq("name", "company").maybeSingle()
-  ]);
+  await serviceClient.from("profiles").upsert({
+    id: user.id,
+    full_name: fullName?.trim() || user.user_metadata?.full_name || user.email.split("@")[0],
+    email: user.email.toLowerCase(),
+    university_id: target.type === "company" ? null : target.universityId
+  }, { onConflict: "id" });
 
-  if (profile && role) {
+  if (target.type === "company") {
+    const { data: role } = await serviceClient.from("roles").select("id").eq("name", "company").maybeSingle();
+    if (!role) return;
     await serviceClient.from("user_roles").upsert({
       user_id: user.id,
       role_id: role.id
@@ -406,42 +441,77 @@ export async function ensureCompanyRole() {
 }
 
 export async function assignRole(formData: FormData) {
-  const { supabase, roles } = await requireAdmin();
-  if (!isPlatformAdmin(roles) && (value(formData, "role") === "super_admin" || value(formData, "role") === "company")) {
-    throw new Error("Only platform admins can assign platform roles.");
+  const { user, profile, roles } = await requireAdmin();
+  const roleName = value(formData, "role") as UserRole;
+  const targetUserId = value(formData, "user_id");
+  if (!isPlatformAdmin(roles) && (roleName === "super_admin" || roleName === "company")) {
+    throw new Error("Only company admins can assign company or super admin roles.");
   }
-  const { data: role } = await supabase.from("roles").select("id").eq("name", value(formData, "role") as UserRole).single();
+  const serviceClient = createServiceRoleClient();
+  const { data: targetProfile } = await serviceClient
+    .from("profiles")
+    .select("university_id")
+    .eq("id", targetUserId)
+    .maybeSingle();
+  if (!targetProfile || !canManageUniversity(roles, profile?.university_id, targetProfile.university_id)) {
+    throw new Error("You can only assign roles for users in your scope.");
+  }
+  const { data: role } = await serviceClient.from("roles").select("id").eq("name", roleName).single();
   if (role) {
-    await supabase.from("user_roles").upsert({
-      user_id: value(formData, "user_id"),
+    await serviceClient.from("user_roles").upsert({
+      user_id: targetUserId,
       role_id: role.id,
-      assigned_by: (await supabase.auth.getUser()).data.user?.id
+      assigned_by: user.id
     });
   }
   revalidatePath("/admin/users");
 }
 
 export async function removeRole(formData: FormData) {
-  const { supabase } = await requireAdmin();
-  const { data: role } = await supabase.from("roles").select("id").eq("name", value(formData, "role") as UserRole).single();
+  const { profile, roles } = await requireAdmin();
+  const roleName = value(formData, "role") as UserRole;
+  const targetUserId = value(formData, "user_id");
+  if (!isPlatformAdmin(roles) && (roleName === "super_admin" || roleName === "company")) {
+    throw new Error("Only company admins can remove company or super admin roles.");
+  }
+  const serviceClient = createServiceRoleClient();
+  const { data: targetProfile } = await serviceClient
+    .from("profiles")
+    .select("university_id")
+    .eq("id", targetUserId)
+    .maybeSingle();
+  if (!targetProfile || !canManageUniversity(roles, profile?.university_id, targetProfile.university_id)) {
+    throw new Error("You can only remove roles for users in your scope.");
+  }
+  const { data: role } = await serviceClient.from("roles").select("id").eq("name", roleName).single();
   if (role) {
-    await supabase.from("user_roles").delete().eq("user_id", value(formData, "user_id")).eq("role_id", role.id);
+    await serviceClient.from("user_roles").delete().eq("user_id", targetUserId).eq("role_id", role.id);
   }
   revalidatePath("/admin/users");
 }
 
 export async function deleteUser(userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const { user, roles } = await requireAdmin();
-    if (!isPlatformAdmin(roles)) {
-      return { ok: false, error: "Only platform admins can delete users." };
+    const { user, profile, roles } = await requireAdmin();
+    if (!isPlatformAdmin(roles) && !roles.includes("super_admin")) {
+      return { ok: false, error: "Only company admins and super admins can delete users." };
     }
-
     if (user.id === userId) {
       return { ok: false, error: "You cannot delete your own account from the admin dashboard." };
     }
 
     const serviceClient = createServiceRoleClient();
+    const { data: targetProfile, error: targetError } = await serviceClient
+      .from("profiles")
+      .select("university_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (targetError) return { ok: false, error: targetError.message };
+    if (!targetProfile) return { ok: false, error: "User was not found." };
+    if (!canManageUniversity(roles, profile?.university_id, targetProfile.university_id)) {
+      return { ok: false, error: "You can only delete users for your university." };
+    }
+
     const { error } = await serviceClient.auth.admin.deleteUser(userId);
 
     if (error) {
@@ -476,7 +546,7 @@ export async function deleteContent(table: string, id: string): Promise<{ ok: tr
 
     if (readError) return { ok: false, error: readError.message };
     if (!record) return { ok: false, error: "This item no longer exists or was already removed." };
-    if (!isPlatformAdmin(roles) && record.university_id !== profile?.university_id) {
+    if (!canManageUniversity(roles, profile?.university_id, record.university_id)) {
       return { ok: false, error: "You can only delete content for your university." };
     }
 
@@ -518,17 +588,6 @@ export async function updateGuidePage(formData: FormData) {
   await supabase.from("guide_pages").update(updates).eq("id", value(formData, "id"));
   revalidatePath("/admin/guide");
   revalidatePath("/guide");
-}
-
-export async function updateAppSetting(formData: FormData) {
-  const { supabase } = await requireAdmin();
-  await supabase.from("app_settings").upsert({
-    key: value(formData, "key"),
-    value: value(formData, "value"),
-    description: nullable(formData, "description")
-  });
-  revalidatePath("/admin/settings");
-  revalidatePath("/dashboard");
 }
 
 export async function goDashboard() {

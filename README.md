@@ -6,8 +6,7 @@ The app intentionally ships with no fake universities, users, events, offers, no
 
 ## Features
 
-- University-first email and password authentication
-- Email domain validation per university
+- Email and password authentication with automatic university detection from email domain
 - Private app access only after login
 - Roles: student, tutor, notes seller, event creator, partner, university admin, super admin, company
 - Admin dashboard with user, role, moderation, reports, offers, announcements, guide, and university management
@@ -15,7 +14,7 @@ The app intentionally ships with no fake universities, users, events, offers, no
 - Pretty category labels and category filter bars on pages that have categories
 - Pending/approved/rejected/flagged moderation flow
 - Supabase Storage buckets for materials and marketplace assets
-- Row Level Security policies for student, university admin, super admin, and company access
+- Row Level Security policies for student, university admin, university-scoped super admin, and company access
 
 ## Local Setup
 
@@ -53,8 +52,9 @@ npm run dev
 8. Run [supabase/migrations/006_admin_guide_delete_autodelete_community_icons.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/006_admin_guide_delete_autodelete_community_icons.sql) after the fifth migration.
 9. Run [supabase/migrations/007_ui_format_profile_event_images.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/007_ui_format_profile_event_images.sql) after the sixth migration.
 10. Run [supabase/migrations/008_company_role_university_settings_titles.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/008_company_role_university_settings_titles.sql) after the seventh migration.
+11. Run [supabase/migrations/009_auth_without_university_dropdown_company_scope.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/009_auth_without_university_dropdown_company_scope.sql) after the eighth migration.
 
-These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, event images, company-role access, university-specific community settings, and role-based insert permissions.
+These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, event images, company-role access, university-specific community settings, automatic email-domain detection support, and role-based insert permissions.
 
 ## Create Your First University
 
@@ -68,7 +68,7 @@ Before anyone can log in, add a real university:
    - `is_active`: `true`
 4. Save.
 
-The login and signup dropdown now shows this university. Users must use an email ending in that domain or the matching admin-style domain.
+The login and signup forms do not show a university dropdown. The app detects the university from the email domain after the user submits the form.
 
 Example:
 
@@ -78,7 +78,11 @@ Example:
 
 Admin-style emails do not automatically receive admin permissions. They only pass the email-domain check. Admin roles still need to be assigned manually through `user_roles` or `/admin/users`.
 
-Internal UniStudents users can sign up or log in with an email whose domain starts with `unistudents`, such as `name@unistudents.com`, `name@unistudents.at`, or `name@unistudents.eu`. These emails bypass university-domain validation and automatically receive the `company` role after authentication. The `company` role has the same platform-wide access as `super_admin`.
+Internal UniStudents users can sign up or log in with an email whose domain starts with `unistudents`, such as `name@unistudents.com`, `name@unistudents.at`, or `name@unistudents.eu`. These emails bypass university-domain validation, automatically receive the `company` role after authentication, and have `profiles.university_id = null`. The `company` role is the only platform-wide role.
+
+If an email domain is not registered, the app shows: `Your university is not registered yet. Please inform your administration or contact us at moysis.negrin@lbs.ac.at.`
+
+If the detected university is inactive, the app shows: `This university portal is currently deactivated. Please contact your university administrator or UniStudents support.`
 
 ## Supabase Email Confirmation
 
@@ -98,19 +102,20 @@ If Confirm email is ON, users may need to confirm their email before they receiv
 ## Create the First Super Admin
 
 1. Go to the app login page.
-2. Select the university you created.
-3. Open the Sign up tab.
-4. Enter your full name, matching university email, and password.
-5. Create the account.
-6. If email confirmation is enabled, confirm the email before continuing.
-7. In Supabase, open Table Editor.
-8. Open `profiles` and find your user row.
-9. Open `roles` and copy the `id` for `super_admin`.
-10. Open `user_roles`.
-11. Insert a row:
+2. Open the Sign up tab.
+3. Enter your full name, email, and password.
+4. Create the account.
+5. If email confirmation is enabled, confirm the email before continuing.
+6. In Supabase, open Table Editor.
+7. Open `profiles` and find your user row.
+8. Open `roles` and copy the `id` for `super_admin`.
+9. Open `user_roles`.
+10. Insert a row:
    - `user_id`: your profile `id`
    - `role_id`: the `super_admin` role id
-12. Log in again. You should now land in `/admin`.
+11. Log in again. You should now land in `/admin`.
+
+Super admins are limited to their own university. Use the `company` role for platform-wide access.
 
 After that, use `/admin/users` to assign roles to other users.
 
@@ -162,7 +167,7 @@ In Supabase:
 
 1. Make sure your university exists and is active.
 2. Open `/login`.
-3. Use the Sign up tab to create an account with a valid university email and password.
+3. Use the Sign up tab to create an account with an email whose domain matches a registered active university.
 4. If Supabase email confirmation is enabled, confirm the email.
 5. Use the Log in tab with the same university, email, and password.
 6. Confirm you reach `/dashboard` or `/admin` if your account has an admin role.
@@ -171,7 +176,7 @@ In Supabase:
 
 - `/admin`: statistics and shortcuts
 - `/admin/users`: user list, university filter, role assignment, role removal
-- Platform admins (`super_admin` and `company`) can delete users from `/admin/users`; university admins cannot see or use deletion.
+- Company users can manage users across all universities. Super admins can manage users in their own university. University admins see their own university.
 - `/admin/events`: approve, reject, or flag events
 - `/admin/materials`: moderate notes and uploaded materials
 - `/admin/lessons`: moderate lesson listings
@@ -181,13 +186,12 @@ In Supabase:
 - `/admin/guide`: manage guide material, uploads, visibility, and auto-delete deadlines
 - `/admin/reports`: review reports and flagged content
 - `/admin/universities`: add universities, deactivate/reactivate universities, and manage each university's Community button
-- `/admin/settings`: points to the admin area where specific settings are managed
 
-Super admins and company users see users and submitted content across all universities. University admins see only users and submitted content for their own university. Company users also get a header university switcher. Selecting a university changes the current viewing/filter context; choosing All Universities returns to the global admin view.
+Company users see users and submitted content across all universities. Super admins and university admins see only users and submitted content for their own university. Only company users get the header university switcher. Selecting a university changes the current viewing/filter context; choosing All Universities returns to the global admin view.
 
-The browser tab title and header title use the current context: `UniStudents - [University Name] Portal`, `UniStudents - [University Name] Admin Dashboard`, or `UniStudents - Admin Dashboard` for global platform admins. The favicon matches the header graduation-cap logo.
+The browser tab title and header title use the current context: `UniStudents - [University Name] Portal`, `UniStudents - [University Name] Admin Dashboard`, `UniStudents` for company users without a selected university, or `UniStudents - Admin Dashboard` for company admin views. The favicon matches the header graduation-cap logo.
 
-Universities can be deactivated or reactivated in `/admin/universities` by platform admins. Deactivated universities cannot be used by normal users for new signup/login, and existing non-platform sessions for that university are blocked with a clear deactivation message. Platform admins can still access admin controls to reactivate the university.
+Universities can be deactivated or reactivated in `/admin/universities` by company users. Deactivated universities cannot be used by normal users, university admins, or super admins for new signup/login, and existing sessions for that university are blocked with a clear deactivation message. Company users can still access admin controls to reactivate the university.
 
 Admin moderation pages use table views. Pending rows show Approve and Reject actions. Approved rows remain visible with a green approved badge. Rejected rows remain visible with a red rejected badge. Delete is available for pending, approved, and rejected content with a confirmation dialog.
 
@@ -205,11 +209,11 @@ Migration `005` fixes event visibility policies and keeps event page queries ali
 
 Content creation is role-based:
 
-- Events: `event_creator`, `university_admin`, `super_admin`
-- Private lessons: `tutor`, `university_admin`, `super_admin`
-- Notes/materials: `notes_seller`, `university_admin`, `super_admin`
-- Marketplace: `student`, `university_admin`, `super_admin`
-- Offers/partnerships: `partner`, `university_admin`, `super_admin`
+- Events: `event_creator`, `university_admin`, `super_admin`, `company`
+- Private lessons: `tutor`, `university_admin`, `super_admin`, `company`
+- Notes/materials: `notes_seller`, `university_admin`, `super_admin`, `company`
+- Marketplace: `student`, `university_admin`, `super_admin`, `company`
+- Offers/partnerships: `partner`, `university_admin`, `super_admin`, `company`
 
 Normal user-created content starts as `pending`. Admins approve it before it appears publicly.
 

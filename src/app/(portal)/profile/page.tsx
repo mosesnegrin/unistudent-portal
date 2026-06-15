@@ -5,8 +5,8 @@ import { ChangePasswordForm } from "@/components/change-password-form";
 import { Field, PageHeader, Panel, PrimaryButton } from "@/components/ui";
 
 export default async function ProfilePage() {
-  const { profile, user, isAdmin, supabase } = await getSessionContext();
-  const { data: university } = profile?.university_id
+  const { profile, user, isAdmin, isCompany, supabase } = await getSessionContext();
+  const { data: university } = profile?.university_id && !isCompany
     ? await supabase.from("universities").select("name").eq("id", profile.university_id).maybeSingle()
     : { data: null };
 
@@ -18,7 +18,7 @@ export default async function ProfilePage() {
           <Field label="Full name" name="full_name" defaultValue={profile?.full_name} required />
           <div className="rounded-xl border border-line bg-surface px-3 py-3">
             <p className="text-sm font-medium">University</p>
-            <p className="mt-1 text-sm text-muted">{university?.name ?? "No university selected"}</p>
+            <p className="mt-1 text-sm text-muted">{isCompany ? "Company account" : university?.name ?? "No university selected"}</p>
           </div>
           <div className="rounded-xl border border-line bg-surface px-3 py-3">
             <p className="text-sm font-medium">Email</p>

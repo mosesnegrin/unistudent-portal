@@ -150,23 +150,26 @@ export function ManagementTable({
   );
 }
 
-export function RoleManager({ userId, roles }: { userId: string; roles: string[] }) {
+export function RoleManager({ userId, roles, canManagePlatformRoles = false }: { userId: string; roles: string[]; canManagePlatformRoles?: boolean }) {
+  const availableRoles = canManagePlatformRoles ? roleOptions : roleOptions.filter((role) => role !== "super_admin" && role !== "company");
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {roles.length ? roles.map((role) => (
+        {roles.length ? roles.map((role) => canManagePlatformRoles || (role !== "super_admin" && role !== "company") ? (
           <form key={role} action={removeRole} className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs">
             <input type="hidden" name="user_id" value={userId} />
             <input type="hidden" name="role" value={role} />
             <span>{role}</span>
             <button className="font-semibold" title={`Remove ${role}`}>×</button>
           </form>
+        ) : (
+          <span key={role} className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs">{role}</span>
         )) : <span className="text-sm text-muted">No roles assigned</span>}
       </div>
       <form action={assignRole} className="flex gap-2">
         <input type="hidden" name="user_id" value={userId} />
         <select name="role" className="focus-ring min-h-10 rounded-lg border border-line bg-white px-3 text-sm">
-          {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
+          {availableRoles.map((role) => <option key={role} value={role}>{role}</option>)}
         </select>
         <PrimaryButton>Add role</PrimaryButton>
       </form>

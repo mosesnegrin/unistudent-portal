@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Profile, UserRole } from "@/lib/types";
 
 export const adminRoles: UserRole[] = ["university_admin", "super_admin", "company"];
-export const platformRoles: UserRole[] = ["super_admin", "company"];
+export const platformRoles: UserRole[] = ["company"];
 export const deactivatedUniversityMessage = "This university portal is currently deactivated. Please contact your university administrator or UniStudents support.";
 
 export async function getSessionContext() {
@@ -29,9 +29,9 @@ export async function getSessionContext() {
     })
     .filter(Boolean) as UserRole[];
   const isCompany = roleNames.includes("company");
-  const isPlatformAdmin = roleNames.some((role) => platformRoles.includes(role));
+  const isPlatformAdmin = isCompany;
 
-  if (profile?.university_id && !isPlatformAdmin) {
+  if (profile?.university_id && !isCompany) {
     const { data: university } = await supabase
       .from("universities")
       .select("is_active")

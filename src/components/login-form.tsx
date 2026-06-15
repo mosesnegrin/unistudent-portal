@@ -1,31 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ensureCompanyRole } from "@/app/actions";
+import { detectAuthTarget, finalizeAuthenticatedProfile } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
-import { allowedDomainMessage, isCompanyEmail, isEmailAllowedForUniversity } from "@/lib/email-domain";
-import type { University } from "@/lib/types";
 import { PrimaryButton } from "@/components/ui";
 
 type AuthMode = "login" | "signup";
 
-export function LoginForm({ universities }: { universities: University[] }) {
+const deactivatedUniversityMessage = "This university portal is currently deactivated. Please contact your university administrator or UniStudents support.";
+
+const unregisteredUniversityMessage = (
+  <>
+    Your university is not registered yet. Please inform your administration or contact us at{" "}
+    <a className="font-medium underline underline-offset-4" href="mailto:moysis.negrin@lbs.ac.at">
+      moysis.negrin@lbs.ac.at
+    </a>.
+  </>
+);
+
+export function LoginForm() {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("login");
-  const [universityId, setUniversityId] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const selectedUniversity = useMemo(
-    () => universities.find((university) => university.id === universityId),
-    [universities, universityId]
-  );
 
   async function redirectByRole() {
     const supabase = createClient();
@@ -59,19 +62,14 @@ export function LoginForm({ universities }: { universities: University[] }) {
     setError(null);
     setMessage(null);
 
-    if (!selectedUniversity) {
-      setError("Choose your university first.");
-      return;
-    }
-
     const normalizedEmail = email.trim().toLowerCase();
-    const companyEmail = isCompanyEmail(normalizedEmail);
-    if (!companyEmail && !selectedUniversity.is_active) {
-      setError("This university portal is currently deactivated. Please contact your university administrator or UniStudents support.");
+    const target = await detectAuthTarget(normalizedEmail);
+    if (!target.ok) {
+      setError(unregisteredUniversityMessage);
       return;
     }
-    if (!isEmailAllowedForUniversity(normalizedEmail, selectedUniversity)) {
-      setError(allowedDomainMessage(selectedUniversity));
+    if (!target.isActive) {
+      setError(deactivatedUniversityMessage);
       return;
     }
 
@@ -92,11 +90,11 @@ export function LoginForm({ universities }: { universities: University[] }) {
       setIsLoading(false);
 
       if (signInError) {
-        setError(signInError.message);
+        setError("Invalid email or password.");
         return;
       }
 
-      await ensureCompanyRole();
+      await finalizeAuthenticatedProfile();
       await redirectByRole();
       return;
     }
@@ -108,7 +106,7 @@ export function LoginForm({ universities }: { universities: University[] }) {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
           full_name: fullName.trim(),
-          university_id: selectedUniversity.id
+          university_id: target.type === "company" ? null : target.universityId
         }
       }
     });
@@ -125,17 +123,9 @@ export function LoginForm({ universities }: { universities: University[] }) {
       } = await supabase.auth.getUser();
 
       if (user) {
-        await supabase
-          .from("profiles")
-          .update({
-            full_name: fullName.trim(),
-            email: normalizedEmail,
-            university_id: selectedUniversity.id
-          })
-          .eq("id", user.id);
+        await finalizeAuthenticatedProfile(fullName.trim());
       }
 
-      await ensureCompanyRole();
       setIsLoading(false);
       await redirectByRole();
       return;
@@ -172,22 +162,6 @@ export function LoginForm({ universities }: { universities: University[] }) {
         </button>
       </div>
       <form onSubmit={submit} className="space-y-4">
-      <label className="block">
-        <span className="text-sm font-medium">University</span>
-        <select
-          value={universityId}
-          onChange={(event) => setUniversityId(event.target.value)}
-          className="focus-ring mt-2 min-h-12 w-full rounded-lg border border-line bg-white px-3 text-sm"
-          required
-        >
-          <option value="">Select university</option>
-          {universities.map((university) => (
-            <option key={university.id} value={university.id}>
-              {university.name}{university.is_active ? "" : " (inactive)"}
-            </option>
-          ))}
-        </select>
-      </label>
       {mode === "signup" ? (
         <label className="block">
           <span className="text-sm font-medium">Full name</span>
@@ -200,13 +174,12 @@ export function LoginForm({ universities }: { universities: University[] }) {
         </label>
       ) : null}
       <label className="block">
-        <span className="text-sm font-medium">University email</span>
+        <span className="text-sm font-medium">Email</span>
         <input
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           className="focus-ring mt-2 min-h-12 w-full rounded-lg border border-line bg-white px-3 text-sm"
-          placeholder={selectedUniversity ? `name@${selectedUniversity.allowed_email_domain}` : "name@university.ac.at"}
           required
         />
       </label>

@@ -22,7 +22,6 @@ export function getAdminNavigation(isSuperAdmin: boolean): NavigationItem[] {
   { href: "/admin/offers", label: "Offers" },
   { href: "/admin/announcements", label: "Announcements" },
   { href: "/admin/guide", label: "Guide" },
-  { href: "/admin/settings", label: "Settings" },
   { href: "/admin/reports", label: "Reports" },
   { href: "/admin/universities", label: "Universities" }
   ];

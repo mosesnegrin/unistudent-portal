@@ -21,11 +21,13 @@ Example:
 
 Admin-style emails do not automatically get admin permissions. They are only allowed to sign up and log in. You still assign admin permissions manually through `user_roles`.
 
-UniStudents company emails use a special rule. Any authenticated user whose email domain starts with `unistudents`, such as `name@unistudents.com`, `name@unistudents.at`, or `name@unistudents.eu`, automatically receives the `company` role. Company users have the same platform-wide permissions as `super_admin` and do not depend on one university.
+UniStudents company emails use a special rule. Any authenticated user whose email domain starts with `unistudents`, such as `name@unistudents.com`, `name@unistudents.at`, or `name@unistudents.eu`, automatically receives the `company` role. Company users have platform-wide permissions and do not belong to one university.
 
 ## Email and Password Auth
 
 The app uses normal Supabase email + password authentication.
+
+The login and signup pages do not ask users to select a university. The app detects the university from the email domain after submission. Unknown domains show: `Your university is not registered yet. Please inform your administration or contact us at moysis.negrin@lbs.ac.at.`
 
 For instant login after signup:
 
@@ -40,7 +42,7 @@ If Confirm email is ON, users must confirm their email before they can log in.
 
 ## First Super Admin
 
-1. Sign up once through the app with your university email and password.
+1. Sign up once through the app with your name, email, and password.
 2. Confirm your email if Supabase email confirmation is enabled.
 3. Open Supabase Table Editor.
 4. Open `profiles` and copy your profile `id`.
@@ -61,12 +63,13 @@ Use `/admin/users`:
 2. Choose `university_admin` or another role.
 3. Click Add role.
 
-Use `university_admin` for admins who should manage only their university. Use `super_admin` or `company` only for people who can manage all universities.
+Use `university_admin` for admins who should manage their university. Use `super_admin` for the highest admin inside one university. Use `company` only for internal UniStudents platform-wide users.
 
 `/admin/users` visibility:
 
-- Super admin/company: sees all users from all universities.
-- University admin: sees only users from their own university.
+- Company: sees all users from all universities.
+- Super admin: sees users from their own university.
+- University admin: sees users from their own university.
 
 The user table shows full name, email, university, phone, roles, created date, and actions.
 
@@ -74,7 +77,7 @@ The user table is loaded with separate server-side queries for profiles, user ro
 
 ## Delete Users
 
-Only platform admins, meaning `super_admin` and `company`, can delete users in `/admin/users`. University admins do not see the delete button.
+Company users can delete users across all universities. Super admins can delete users in their own university. University admins do not see the delete button.
 
 Deletion uses `SUPABASE_SERVICE_ROLE_KEY` on the server to remove the Supabase Auth user. The key must be added to `.env.local` and Vercel environment variables, but it must never be imported into client components or exposed in browser code.
 
@@ -104,11 +107,11 @@ Students will only see approved content for their own university, plus Austria-w
 
 Creation permissions:
 
-- Events: `event_creator`, `university_admin`, `super_admin`
-- Private lessons: `tutor`, `university_admin`, `super_admin`
-- Notes/materials: `notes_seller`, `university_admin`, `super_admin`
-- Marketplace items: `student`, `university_admin`, `super_admin`
-- Offers/partnerships: `partner`, `university_admin`, `super_admin`
+- Events: `event_creator`, `university_admin`, `super_admin`, `company`
+- Private lessons: `tutor`, `university_admin`, `super_admin`, `company`
+- Notes/materials: `notes_seller`, `university_admin`, `super_admin`, `company`
+- Marketplace items: `student`, `university_admin`, `super_admin`, `company`
+- Offers/partnerships: `partner`, `university_admin`, `super_admin`, `company`
 
 Approved listings show provider/contact information. Users can add an optional phone number in `/profile`; phone is shown publicly only when completed. Profile email is read-only and cannot be changed from the profile form. Admin-created listings show `Official / Admin` with the admin email when available.
 
@@ -123,11 +126,11 @@ Admin moderation pages are table-based:
 - Rejected items stay visible with a red rejected badge.
 - Delete is available on pending, approved, and rejected items after confirmation.
 
-Super admins and company users see submitted content from every university. University admins see submitted content only from their own university. Company users can use the header university switcher to view one university or All Universities without changing their account profile.
+Company users see submitted content from every university. Super admins and university admins see submitted content only from their own university. Only company users can use the header university switcher to view one university or All Universities without changing their account profile.
 
 Browser and header titles follow the current context: `UniStudents - [University Name] Portal`, `UniStudents - [University Name] Admin Dashboard`, or `UniStudents - Admin Dashboard`. The favicon matches the header logo.
 
-If a university is deactivated, normal users from that university are blocked from logging in or continuing an existing session. They see: `This university portal is currently deactivated. Please contact your university administrator or UniStudents support.` Platform admins are not blocked, so they can reactivate universities.
+If a university is deactivated, normal users, university admins, and super admins from that university are blocked from logging in or continuing an existing session. They see: `This university portal is currently deactivated. Please contact your university administrator or UniStudents support.` Company users are not blocked, so they can reactivate universities.
 
 Official announcements also have a confirmation-based Delete button in `/admin/announcements`. Super admins can delete all announcements. University admins can delete only announcements for their own university.
 
@@ -180,9 +183,11 @@ Events support optional image uploads through the `event-assets` bucket. Event i
 
 Forms and important actions show confirmation or error messages, including profile save, password change, create/upload, approve/reject, delete, RSVP, and cancel RSVP.
 
-## App Settings
+## Community Button Settings
 
 Community button settings are managed per university in `/admin/universities` using `community_button_label` and `community_button_url`.
+
+There is no `/admin/settings` tab. Community button settings live only in `/admin/universities`.
 
 The internal Community tab has been removed. The dashboard external button appears for normal users only when their own university has a `community_button_url` value. A URL for one university does not affect another university.
 
@@ -199,5 +204,5 @@ If content does not show:
 1. Confirm the latest migration was run.
 2. Confirm the content has `moderation_status = approved`.
 3. Confirm the user profile has the correct `university_id`.
-4. Confirm the admin has `super_admin`, `company`, or `university_admin` in `user_roles`.
+4. Confirm the admin has `company`, `super_admin`, or `university_admin` in `user_roles`.
 5. Confirm `SUPABASE_SERVICE_ROLE_KEY` is set for admin management pages.

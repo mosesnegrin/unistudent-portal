@@ -16,8 +16,3 @@ export function isEmailAllowedForUniversity(email: string, university: Pick<Univ
 export function isCompanyEmail(email: string) {
   return getEmailDomain(email).startsWith("unistudents");
 }
-
-export function allowedDomainMessage(university: Pick<University, "allowed_email_domain">) {
-  const domain = university.allowed_email_domain.trim().toLowerCase();
-  return `Use an email ending in ${domain} or admin.${domain}.`;
-}
