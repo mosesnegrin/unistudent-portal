@@ -22,7 +22,7 @@ export default async function AdminOffersPage() {
   const adminClient = createServiceRoleClient();
   let offersQuery = adminClient
     .from("offers")
-    .select("id,title,description,partner_name,discount_details,expires_at,is_austria_wide,moderation_status,auto_delete_at,profiles(full_name,email),universities(name)")
+    .select("id,title,description,partner_name,discount_details,expires_at,is_austria_wide,document_url,document_name,moderation_status,auto_delete_at,profiles(full_name,email),universities(name)")
     .order("created_at", { ascending: false });
   const universityFilter = isPlatformAdmin ? effectiveUniversityId : profile?.university_id;
   if (universityFilter) offersQuery = offersQuery.eq("university_id", universityFilter);
@@ -76,6 +76,7 @@ export default async function AdminOffersPage() {
             { key: "partner_name", label: "Partner/offered by" },
             { key: "contact", label: "Email/contact", render: (item) => provider(item, "email") },
             { key: "discount_details", label: "Discount details" },
+            { key: "document", label: "Document", render: (item) => item.document_url ? <a href={String(item.document_url)} target="_blank" rel="noreferrer" className="font-medium underline">{String(item.document_name ?? "Download document")}</a> : "No document" },
             { key: "expires_at", label: "Expiry date", render: (item) => formatDate(String(item.expires_at ?? "")) },
             { key: "scope", label: "University/global", render: scope }
           ]}

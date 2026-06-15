@@ -14,6 +14,7 @@ export type University = {
   id: string;
   name: string;
   allowed_email_domain: string;
+  short_code?: string | null;
   is_active: boolean;
   community_button_label?: string | null;
   community_button_url?: string | null;

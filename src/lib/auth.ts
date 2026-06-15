@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { getEmailDomain } from "@/lib/email-domain";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile, UserRole } from "@/lib/types";
 
@@ -34,13 +35,20 @@ export async function getSessionContext() {
   if (profile?.university_id && !isCompany) {
     const { data: university } = await supabase
       .from("universities")
-      .select("is_active")
+      .select("is_active,allowed_email_domain")
       .eq("id", profile.university_id)
       .maybeSingle();
 
     if (university && !university.is_active) {
       await supabase.auth.signOut();
       redirect(`/login?error=deactivated`);
+    }
+
+    const emailDomain = getEmailDomain(user.email ?? profile.email ?? "");
+    const allowedDomain = university?.allowed_email_domain?.trim().toLowerCase();
+    if (allowedDomain && emailDomain !== allowedDomain && emailDomain !== `admin.${allowedDomain}`) {
+      await supabase.auth.signOut();
+      redirect(`/login?error=domain_changed`);
     }
   }
 

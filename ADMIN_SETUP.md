@@ -144,7 +144,7 @@ Students and partners see tabs on the content pages:
 
 - Events: All future events, My registered events, Create event when allowed
 - Lessons: All lessons, My lesson requests, Offer lesson when allowed
-- Materials: All materials, My material requests/downloads, Upload material when allowed
+- Materials: All materials, Upload material when allowed
 - Marketplace: All items, My marketplace posts, Sell item when allowed
 - Offers: All offers, My offers/partner posts, Add offer when allowed
 
@@ -206,3 +206,18 @@ If content does not show:
 3. Confirm the user profile has the correct `university_id`.
 4. Confirm the admin has `company`, `super_admin`, or `university_admin` in `user_roles`.
 5. Confirm `SUPABASE_SERVICE_ROLE_KEY` is set for admin management pages.
+
+## Latest Admin Changes
+
+- `/admin/users` uses the company header university switcher. There is no second university dropdown inside the Users page.
+- Company users can choose All Universities in the header to see all users. Super admins and university admins remain scoped to their own university.
+- University-specific URLs such as `/lbs/dashboard` were not added because this would require a larger route migration. Use the current routes for production. Universities now have an optional `short_code` field for future slug support.
+- `/materials` no longer has a My materials/request tab. It shows All materials and Upload material when allowed.
+- Event forms support Other / Add new type. Custom event types are saved and automatically appear in the event category filter.
+- Marketplace posts publish immediately. Normal students can offer lessons, but lessons stay pending unless the user has `tutor`, `university_admin`, `super_admin`, or `company`.
+- Admin dashboard now has Waiting for approval. Use Review to open the correct moderation/admin page; approvals still happen on the dedicated admin pages.
+- Announcements and guide material can be draft or published, edited after creation, and deleted.
+- `/admin/universities` displays the main login domain and generated admin domain. Only the main domain is editable; the admin domain follows automatically.
+- Only company users can deactivate/reactivate universities.
+- After a university domain changes, users whose email no longer matches the current domain are signed out on their next protected page load.
+- Run migration `010_routing_permissions_pending_domains.sql` after migration `009`.

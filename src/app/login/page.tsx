@@ -22,6 +22,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             {deactivatedUniversityMessage}
           </p>
         ) : null}
+        {error === "domain_changed" ? (
+          <p className="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            Your account email no longer matches the current university login domain. Please contact your university administrator or UniStudents support.
+          </p>
+        ) : null}
         <LoginForm />
       </section>
     </main>

@@ -53,6 +53,7 @@ npm run dev
 9. Run [supabase/migrations/007_ui_format_profile_event_images.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/007_ui_format_profile_event_images.sql) after the sixth migration.
 10. Run [supabase/migrations/008_company_role_university_settings_titles.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/008_company_role_university_settings_titles.sql) after the seventh migration.
 11. Run [supabase/migrations/009_auth_without_university_dropdown_company_scope.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/009_auth_without_university_dropdown_company_scope.sql) after the eighth migration.
+12. Run [supabase/migrations/010_routing_permissions_pending_domains.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/010_routing_permissions_pending_domains.sql) after the ninth migration.
 
 These migrations create and update all tables, roles, RLS policies, triggers, indexes, storage buckets, phone support, provider references, event images, company-role access, university-specific community settings, automatic email-domain detection support, and role-based insert permissions.
 
@@ -227,7 +228,7 @@ User-side content pages have tabs:
 
 - Events: All future events, My registered events, Create event when allowed
 - Lessons: All lessons, My lesson requests, Offer lesson when allowed
-- Materials: All materials, My material requests/downloads, Upload material when allowed
+- Materials: All materials, Upload material when allowed
 - Marketplace: All items, My marketplace posts, Sell item when allowed
 - Offers: All offers, My offers/partner posts when allowed, Add offer when allowed
 
@@ -242,6 +243,20 @@ Money fields accept whole euros like `5` or euros and cents with a comma like `5
 Event registration types:
 
 - `internal_rsvp`: students register inside the portal and can cancel registration.
+
+## Latest Update Notes
+
+- `/admin/users` no longer has its own university dropdown. Company users use the global header university switcher; All Universities shows all users, and a selected university scopes the table.
+- University-specific URL routing like `/lbs/events` was skipped for safety because the deployed app uses shared protected routes and absolute links. The database now supports `universities.short_code` so slugs can be prepared later.
+- `/materials` now has only All materials and Upload material when the user has permission.
+- Event creation supports preset event types plus Other / Add new type. Custom types are saved in `event_type`, display as pretty labels, and appear in category filters.
+- Event creators/admins/company publish events immediately. Tutors/admins/company publish lessons immediately; normal student lessons stay pending. Notes sellers/admins/company publish materials immediately. Marketplace posts publish immediately. Partners/admins/company publish offers immediately.
+- Marketplace, lessons, and materials include responsibility disclaimers under the page title.
+- Admin overview includes Waiting for approval with pending events, lessons, materials, offers, marketplace items if any, announcement drafts, and guide drafts.
+- Announcements and guide material support draft/published status, editing, uploaded documents/images, and deletion.
+- `/admin/universities` shows main and generated admin login domains. Main domain and short code can be edited. Only company users can deactivate/reactivate universities.
+- If a university domain changes, old-domain users are signed out on their next protected page load if their email no longer matches the current main/admin domain.
+- Run [supabase/migrations/010_routing_permissions_pending_domains.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/010_routing_permissions_pending_domains.sql) after migration `009`.
 - `external_link`: students use Register externally, which opens the external URL.
 - `contact_organizer`: students see Contact organizer with email/phone.
 - `none`: no registration button is shown.

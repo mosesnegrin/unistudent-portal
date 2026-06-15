@@ -30,7 +30,10 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
 
   return (
     <>
-      <PageHeader title="Marketplace" description="Buy and sell student items after moderation approval." />
+      <PageHeader
+        title="Marketplace"
+        description="Marketplace posts are not organized by UniStudents or the university. UniStudents and the university are not responsible for items sold, bought, exchanged, or communicated about here."
+      />
       <SubNav items={nav} active={activeTab} />
       {activeTab !== "create" ? <CategoryFilter basePath="/marketplace" categories={categories} activeCategory={activeCategory} activeTab={activeTab} /> : null}
       <div className={activeTab === "create" ? "mx-auto max-w-2xl" : "grid gap-4 lg:grid-cols-[1fr_380px]"}>
@@ -56,13 +59,13 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
         {activeTab === "create" && canCreateItem ? (
           <Panel>
             <h2 className="font-semibold">Post item</h2>
-            <ActionForm action={createMarketplaceItem} successMessage="Marketplace item submitted and waiting for approval." resetOnSuccess className="mt-4 space-y-4">
+            <ActionForm action={createMarketplaceItem} successMessage="Marketplace item published successfully." resetOnSuccess className="mt-4 space-y-4">
               <Field label="Title" name="title" required />
               <TextArea label="Description" name="description" required />
               <Field label="Price" name="price_cents" placeholder="5 or 5,30" pattern={moneyInputPattern} inputMode="decimal" title="Use whole euros like 5 or euros and cents like 5,30." />
               <Field label="Category" name="category" required />
               <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
-              <PrimaryButton>Submit for approval</PrimaryButton>
+              <PrimaryButton>Publish item</PrimaryButton>
             </ActionForm>
           </Panel>
         ) : null}

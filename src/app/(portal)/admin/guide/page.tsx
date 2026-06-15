@@ -43,8 +43,8 @@ function GuideForm({
       </SelectField>
       <TextArea label="Description/content" name="body" defaultValue={item?.body ? String(item.body) : ""} required />
       <SelectField label="Status" name="is_published" defaultValue={item?.is_published === false ? "false" : "true"}>
-        <option value="true">Approved / published</option>
-        <option value="false">Rejected / draft</option>
+        <option value="false">Draft</option>
+        <option value="true">Published</option>
       </SelectField>
       {isPlatformAdmin ? (
         <SelectField label="Visibility" name="university_id" defaultValue={String(item?.university_id ?? "")}>
@@ -72,7 +72,7 @@ export default async function AdminGuidePage() {
   const adminClient = createServiceRoleClient();
   let query = adminClient
     .from("guide_pages")
-    .select("id,title,category,body,is_published,university_id,auto_delete_at,created_at,created_by,profiles(full_name,email),universities(name)")
+    .select("id,title,category,body,is_published,university_id,auto_delete_at,created_at,created_by,image_url,document_url,document_name,profiles(full_name,email),universities(name)")
     .order("created_at", { ascending: false });
   const universityFilter = isPlatformAdmin ? effectiveUniversityId : profile?.university_id;
   if (universityFilter) query = query.eq("university_id", universityFilter);
@@ -105,10 +105,11 @@ export default async function AdminGuidePage() {
                       <p className="mt-1 text-sm text-muted"><CategoryLabel category={String(record.category)} /> · {scope(record)}</p>
                       <p className="mt-2 text-sm text-muted">Created by {creator(record) || "Unknown"} · {formatDate(String(record.created_at ?? ""))}</p>
                       <div className="mt-2 flex gap-2">
-                        <StatusBadge value={record.is_published ? "approved" : "rejected"} />
+                        <StatusBadge value={record.is_published ? "published" : "draft"} />
                         {expired ? <StatusBadge value="expired" /> : null}
                       </div>
                       {record.auto_delete_at ? <p className="mt-2 text-sm text-muted">Auto-delete: {formatDateTime(String(record.auto_delete_at))}</p> : null}
+                      {record.document_url ? <a href={String(record.document_url)} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-medium underline">Download document</a> : null}
                     </div>
                     <ConfirmDeleteButton table="guide_pages" id={String(record.id)} label={String(record.title)} />
                   </div>

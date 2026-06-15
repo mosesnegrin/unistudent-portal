@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSessionContext, requireAdmin } from "@/lib/auth";
 import { isCompanyEmail } from "@/lib/email-domain";
-import { canCreate, noCreatePermissionMessage } from "@/lib/permissions";
+import { canCreate, hasAnyRole, noCreatePermissionMessage } from "@/lib/permissions";
 import { parseEuroInput } from "@/lib/money";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import type { ModerationStatus, UserRole } from "@/lib/types";
@@ -34,6 +34,14 @@ function isPlatformAdmin(roles: UserRole[]) {
 
 function canManageUniversity(roles: UserRole[], profileUniversityId: string | null | undefined, universityId: string | null | undefined) {
   return roles.includes("company") || Boolean(universityId && profileUniversityId === universityId && (roles.includes("super_admin") || roles.includes("university_admin")));
+}
+
+function eventType(formData: FormData) {
+  return value(formData, "event_type") === "__custom" ? value(formData, "event_type_custom") : value(formData, "event_type");
+}
+
+function immediateApproval(roles: UserRole[], allowedRoles: UserRole[]) {
+  return hasAnyRole(roles, allowedRoles) ? "approved" : "pending";
 }
 
 const imageTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -66,13 +74,14 @@ export async function createEvent(formData: FormData) {
   const universityId = effectiveUniversityId ?? profile?.university_id;
   if (!universityId) throw new Error("Select a university first.");
   const image = await uploadOptionalAsset(supabase, "event-assets", user.id, formData, "image", imageTypes);
+  const selectedEventType = eventType(formData);
   await supabase.from("events").insert({
     title: value(formData, "title"),
     description: value(formData, "description"),
     starts_at: value(formData, "starts_at"),
     location: value(formData, "location"),
     university_id: universityId,
-    event_type: value(formData, "event_type"),
+    event_type: selectedEventType || "student_event",
     capacity: numberOrNull(formData, "capacity"),
     price_cents: moneyOrNull(formData, "price_cents"),
     registration_type: value(formData, "registration_type") || "internal_rsvp",
@@ -82,7 +91,7 @@ export async function createEvent(formData: FormData) {
     auto_delete_at: nullable(formData, "auto_delete_at"),
     image_url: image?.url ?? null,
     created_by: user.id,
-    moderation_status: "pending"
+    moderation_status: immediateApproval(roles, ["event_creator", "university_admin", "super_admin", "company"])
   });
   revalidatePath("/events");
 }
@@ -103,7 +112,7 @@ export async function createLesson(formData: FormData) {
     auto_delete_at: nullable(formData, "auto_delete_at"),
     university_id: universityId,
     created_by: user.id,
-    moderation_status: "pending"
+    moderation_status: immediateApproval(roles, ["tutor", "university_admin", "super_admin", "company"])
   });
   revalidatePath("/lessons");
 }
@@ -134,7 +143,7 @@ export async function createMaterial(formData: FormData) {
     auto_delete_at: nullable(formData, "auto_delete_at"),
     university_id: universityId,
     created_by: user.id,
-    moderation_status: "pending"
+    moderation_status: immediateApproval(roles, ["notes_seller", "university_admin", "super_admin", "company"])
   });
   revalidatePath("/materials");
 }
@@ -152,7 +161,7 @@ export async function createMarketplaceItem(formData: FormData) {
     auto_delete_at: nullable(formData, "auto_delete_at"),
     university_id: universityId,
     seller_id: user.id,
-    moderation_status: "pending"
+    moderation_status: "approved"
   });
   revalidatePath("/marketplace");
 }
@@ -324,6 +333,29 @@ export async function createAnnouncement(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+export async function updateAnnouncement(formData: FormData) {
+  const { supabase, profile, roles, user } = await requireAdmin();
+  const [image, document] = await Promise.all([
+    uploadOptionalAsset(supabase, "announcement-assets", user.id, formData, "image", imageTypes),
+    uploadOptionalAsset(supabase, "announcement-assets", user.id, formData, "document", documentTypes)
+  ]);
+  const updates: Record<string, string | boolean | null> = {
+    title: value(formData, "title"),
+    body: value(formData, "body"),
+    university_id: isPlatformAdmin(roles) ? nullable(formData, "university_id") : profile?.university_id ?? null,
+    is_published: value(formData, "is_published") === "true",
+    auto_delete_at: nullable(formData, "auto_delete_at")
+  };
+  if (image) updates.image_url = image.url;
+  if (document) {
+    updates.document_url = document.url;
+    updates.document_name = document.name;
+  }
+  await supabase.from("announcements").update(updates).eq("id", value(formData, "id"));
+  revalidatePath("/admin/announcements");
+  revalidatePath("/dashboard");
+}
+
 export async function createGuidePage(formData: FormData) {
   const { supabase, profile, roles, user } = await requireAdmin();
   const [image, document] = await Promise.all([
@@ -352,6 +384,7 @@ export async function createUniversity(formData: FormData) {
   await supabase.from("universities").insert({
     name: value(formData, "name"),
     allowed_email_domain: value(formData, "allowed_email_domain").toLowerCase(),
+    short_code: nullable(formData, "short_code")?.toLowerCase(),
     is_active: value(formData, "is_active") === "true"
   });
   revalidatePath("/admin/universities");
@@ -386,6 +419,25 @@ export async function updateUniversityCommunity(formData: FormData) {
     .eq("id", universityId);
   revalidatePath("/admin/universities");
   revalidatePath("/dashboard");
+}
+
+export async function updateUniversityDetails(formData: FormData) {
+  const { profile, roles } = await requireAdmin();
+  const universityId = value(formData, "id");
+  const isPlatform = isPlatformAdmin(roles);
+  if (!isPlatform && universityId !== profile?.university_id) {
+    throw new Error("You can only update your university.");
+  }
+  const serviceClient = createServiceRoleClient();
+  await serviceClient
+    .from("universities")
+    .update({
+      name: value(formData, "name"),
+      allowed_email_domain: value(formData, "allowed_email_domain").toLowerCase(),
+      short_code: nullable(formData, "short_code")?.toLowerCase()
+    })
+    .eq("id", universityId);
+  revalidatePath("/admin/universities");
 }
 
 export async function detectAuthTarget(email: string): Promise<

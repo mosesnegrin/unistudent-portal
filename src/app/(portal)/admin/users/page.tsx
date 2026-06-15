@@ -1,20 +1,14 @@
 import { requireAdmin } from "@/lib/auth";
 import { formatDate } from "@/lib/date-format";
-import { PageHeader, Panel, SelectField } from "@/components/ui";
+import { PageHeader, Panel } from "@/components/ui";
 import { RoleManager } from "@/components/admin";
 import { DeleteUserButton } from "@/components/delete-user-button";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 
-export default async function AdminUsersPage({
-  searchParams
-}: {
-  searchParams: Promise<{ university?: string }>;
-}) {
-  const { university } = await searchParams;
+export default async function AdminUsersPage() {
   const { profile, roles, user: currentUser, isPlatformAdmin, effectiveUniversityId } = await requireAdmin();
   const adminClient = createServiceRoleClient();
-  const { data: universities } = await adminClient.from("universities").select("id,name").order("name");
-  const universityId = isPlatformAdmin ? university || effectiveUniversityId || undefined : profile?.university_id;
+  const universityId = isPlatformAdmin ? effectiveUniversityId || undefined : profile?.university_id;
   const canDeleteUsers = isPlatformAdmin || roles.includes("super_admin");
   let query = adminClient
     .from("profiles")
@@ -42,18 +36,7 @@ export default async function AdminUsersPage({
 
   return (
     <>
-      <PageHeader title="Users" description="View users, filter by university, and assign or remove roles." />
-      {isPlatformAdmin ? (
-        <Panel className="mb-4">
-          <form>
-            <SelectField label="University filter" name="university" defaultValue={university ?? ""}>
-              <option value="">All universities</option>
-              {universities?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </SelectField>
-            <button className="mt-3 rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white">Apply</button>
-          </form>
-        </Panel>
-      ) : null}
+      <PageHeader title="Users" description="View users, assign roles, remove roles, and manage scoped access." />
       {combinedError ? (
         <Panel>
           <p className="text-sm text-rose-700">{combinedError.message}</p>

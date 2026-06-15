@@ -13,6 +13,7 @@ Create a Supabase project, then run the SQL migrations in order:
 7. [supabase/migrations/007_ui_format_profile_event_images.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/007_ui_format_profile_event_images.sql)
 8. [supabase/migrations/008_company_role_university_settings_titles.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/008_company_role_university_settings_titles.sql)
 9. [supabase/migrations/009_auth_without_university_dropdown_company_scope.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/009_auth_without_university_dropdown_company_scope.sql)
+10. [supabase/migrations/010_routing_permissions_pending_domains.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/010_routing_permissions_pending_domains.sql)
 
 After the migration, add your first university in the `universities` table.
 
@@ -125,3 +126,14 @@ If users or approved content do not appear, verify:
 6. Confirm the app opens `/dashboard` or `/admin` depending on assigned roles.
 7. Confirm content tabs appear on user pages, and create/upload tabs appear only for users with the correct roles.
 8. Confirm event RSVP lists appear for admins in `/admin/events`.
+
+## Latest Deployment Notes
+
+- Run [supabase/migrations/010_routing_permissions_pending_domains.sql](/Users/mosesnegrin/Documents/UniStudent%20Portal/supabase/migrations/010_routing_permissions_pending_domains.sql) after migration `009`.
+- The optional university URL structure was skipped for this release to avoid breaking the deployed App Router structure. Continue using `/dashboard`, `/events`, `/materials`, `/admin`, and the existing routes.
+- The new `universities.short_code` column is available for future URL-slug work. Add values like `lbs`, `wu`, or `univie` manually in Supabase or from `/admin/universities`.
+- Company `/admin/users` filtering now happens only through the header university switcher.
+- Only company users can deactivate/reactivate universities.
+- Main university domains can be edited in `/admin/universities`; admin domains are generated automatically as `admin.[domain]`.
+- If a domain changes, affected users are blocked on the next protected page load unless their email matches the new main/admin domain.
+- Waiting for approval, custom event types, announcement/guide draft workflows, and updated approval rules are included in this release.

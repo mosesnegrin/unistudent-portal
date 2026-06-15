@@ -15,6 +15,7 @@ export function hasAnyRole(userRoles: UserRole[], allowedRoles: UserRole[]) {
 }
 
 export function canCreate(userRoles: UserRole[], permission: CreationPermission) {
+  if (permission === "lessons" || permission === "marketplace") return true;
   return hasAnyRole(userRoles, creationRoleMap[permission]);
 }
 

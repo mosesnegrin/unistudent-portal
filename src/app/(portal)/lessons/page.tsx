@@ -43,7 +43,10 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <PageHeader title="Private lessons" description="Find study help or offer lessons to students at your university." />
+      <PageHeader
+        title="Private lessons"
+        description="Lessons are moderated, but UniStudents and the university are not responsible for the quality, accuracy, availability, or outcome of lessons offered by students."
+      />
       <SubNav items={nav} active={activeTab} />
       <div className={activeTab === "create" ? "mx-auto max-w-2xl" : "grid gap-4 lg:grid-cols-[1fr_380px]"}>
         <div className="space-y-3">
@@ -79,7 +82,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
         {activeTab === "create" && canCreateLesson ? (
           <Panel>
             <h2 className="font-semibold">Offer a lesson</h2>
-            <ActionForm action={createLesson} successMessage="Lesson submitted and waiting for approval." resetOnSuccess className="mt-4 space-y-4">
+            <ActionForm action={createLesson} successMessage="Lesson submitted successfully." resetOnSuccess className="mt-4 space-y-4">
               <Field label="Course name" name="course_name" required />
               <Field label="Tutor name" name="tutor_name" required />
               <Field label="Grade/background" name="grade_background" />
@@ -91,7 +94,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
               </SelectField>
               <Field label="Availability" name="availability" />
               <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
-              <PrimaryButton>Submit for approval</PrimaryButton>
+              <PrimaryButton>Offer lesson</PrimaryButton>
             </ActionForm>
           </Panel>
         ) : null}

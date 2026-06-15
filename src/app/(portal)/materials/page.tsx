@@ -9,28 +9,19 @@ import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, TextA
 
 export default async function MaterialsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab: requestedTab } = await searchParams;
-  const { supabase, effectiveUniversityId, roles, user } = await getSessionContext();
+  const { supabase, effectiveUniversityId, roles } = await getSessionContext();
   const canCreateMaterial = canCreate(roles, "materials");
-  const activeTab = requestedTab === "requests" || (requestedTab === "create" && canCreateMaterial) ? requestedTab : "all";
+  const activeTab = requestedTab === "create" && canCreateMaterial ? requestedTab : "all";
   const nav = [
     { href: "/materials", label: "All materials" },
-    { href: "/materials?tab=requests", label: "My material requests/downloads" },
     ...(canCreateMaterial ? [{ href: "/materials?tab=create", label: "Upload material" }] : [])
   ];
   const materialSelect = "id,course_name,title,description,is_free,price_cents,file_path,profiles(full_name,email,phone)";
-  const { data } = activeTab === "requests"
-    ? await supabase.from("material_requests").select(`status,message,materials(${materialSelect})`).eq("requester_id", user.id).order("created_at", { ascending: false })
-    : activeTab === "all"
+  const { data } = activeTab === "all"
       ? await supabase.from("materials").select(materialSelect).eq("moderation_status", "approved").eq("university_id", effectiveUniversityId).order("created_at", { ascending: false })
         .or(`auto_delete_at.is.null,auto_delete_at.gt.${new Date().toISOString()}`)
       : { data: [] };
-  const materials = (activeTab === "requests"
-    ? ((data ?? []) as Array<Record<string, unknown>>).map((item) => {
-        const material = item.materials as Record<string, unknown> | Record<string, unknown>[] | null;
-        return Array.isArray(material) ? material[0] : material;
-      })
-    : ((data ?? []) as Array<Record<string, unknown>>)
-  ).filter(Boolean) as Array<Record<string, unknown>>;
+  const materials = ((data ?? []) as Array<Record<string, unknown>>).filter(Boolean) as Array<Record<string, unknown>>;
   const downloadablePaths = materials
     .filter((material) => material.is_free && material.file_path)
     .map((material) => String(material.file_path));
@@ -44,7 +35,10 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <PageHeader title="Notes and materials" description="Browse approved study materials or submit your own notes for moderation." />
+      <PageHeader
+        title="Notes and materials"
+        description="Materials are moderated, but UniStudents and the university are not responsible for the accuracy, completeness, quality, or use of uploaded notes and materials."
+      />
       <SubNav items={nav} active={activeTab} />
       <div className={activeTab === "create" ? "mx-auto max-w-2xl" : "grid gap-4 lg:grid-cols-[1fr_380px]"}>
         <div className="space-y-3">
@@ -81,7 +75,7 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
         {activeTab === "create" && canCreateMaterial ? (
           <Panel>
             <h2 className="font-semibold">Upload material</h2>
-            <ActionForm action={createMaterial} successMessage="Material uploaded and waiting for approval." resetOnSuccess className="mt-4 space-y-4">
+            <ActionForm action={createMaterial} successMessage="Material uploaded successfully." resetOnSuccess className="mt-4 space-y-4">
               <Field label="Course name" name="course_name" required />
               <Field label="Title" name="title" required />
               <TextArea label="Description" name="description" required />
@@ -95,7 +89,7 @@ export default async function MaterialsPage({ searchParams }: { searchParams: Pr
               </SelectField>
               <Field label="Price" name="price_cents" placeholder="5 or 5,30" pattern={moneyInputPattern} inputMode="decimal" title="Use whole euros like 5 or euros and cents like 5,30." />
               <Field label="Auto-delete deadline" name="auto_delete_at" type="datetime-local" />
-              <PrimaryButton>Submit for approval</PrimaryButton>
+              <PrimaryButton>Upload material</PrimaryButton>
             </ActionForm>
           </Panel>
         ) : null}

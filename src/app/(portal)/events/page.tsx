@@ -8,6 +8,7 @@ import { ActionForm } from "@/components/action-form";
 import { ProviderInfo } from "@/components/provider-info";
 import { CategoryFilter, SubNav } from "@/components/subnav";
 import { CategoryLabel } from "@/components/category-icon";
+import { EventTypeField } from "@/components/event-type-field";
 import { EmptyState, Field, PageHeader, Panel, PrimaryButton, SelectField, TextArea } from "@/components/ui";
 
 export default async function EventsPage({ searchParams }: { searchParams: Promise<{ tab?: string; category?: string }> }) {
@@ -108,16 +109,12 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
         {activeTab === "create" && canCreateEvent ? (
           <Panel>
             <h2 className="font-semibold">Submit event</h2>
-            <ActionForm action={createEvent} successMessage="Event submitted and waiting for approval." resetOnSuccess className="mt-4 space-y-4">
+            <ActionForm action={createEvent} successMessage="Event saved successfully." resetOnSuccess className="mt-4 space-y-4">
               <Field label="Title" name="title" required />
               <TextArea label="Description" name="description" required />
               <Field label="Date and time" name="starts_at" type="datetime-local" required />
               <Field label="Location" name="location" required />
-              <SelectField label="Event type" name="event_type" required defaultValue="student_event">
-                <option value="student_event">Student event</option>
-                <option value="university_event">University/student-union event</option>
-                <option value="external_partner_event">External partner event</option>
-              </SelectField>
+              <EventTypeField />
               <Field label="Capacity" name="capacity" type="number" />
               <Field label="Price" name="price_cents" placeholder="5 or 5,30" pattern={moneyInputPattern} inputMode="decimal" title="Use whole euros like 5 or euros and cents like 5,30." />
               <SelectField label="Registration type" name="registration_type" defaultValue="internal_rsvp">
@@ -134,7 +131,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                 <span className="text-sm font-medium text-ink">Image</span>
                 <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="focus-ring mt-2 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm shadow-sm" />
               </label>
-              <PrimaryButton>Submit for approval</PrimaryButton>
+              <PrimaryButton>Create event</PrimaryButton>
             </ActionForm>
           </Panel>
         ) : null}

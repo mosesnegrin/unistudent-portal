@@ -164,6 +164,8 @@ export function StatusBadge({ value }: { value: string }) {
   const tone =
     value === "approved"
       ? "bg-emerald-50 text-emerald-700"
+      : value === "published"
+        ? "bg-emerald-50 text-emerald-700"
       : value === "rejected"
         ? "bg-rose-50 text-rose-700"
         : value === "flagged"
